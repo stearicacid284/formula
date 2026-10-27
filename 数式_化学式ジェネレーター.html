@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="ja" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>数式・化学式ジェネレーター | Math & Chem Formula Studio</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- MathJax Configuration (Must be before loading MathJax script) -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        packages: {'[+]': ['mhchem', 'ams', 'Cancel', 'color', ' physics']}
+      },
+      svg: {
+        // CRITICAL: fontCache must be 'local' so every generated SVG element is 100% self-contained
+        // with its own <defs> paths. This guarantees zero missing glyphs when serializing SVG to Canvas/PNG.
+        fontCache: 'local',
+        scale: 1,
+        minScale: 0.5
+      },
+      startup: {
+        typeset: false,
+        ready: () => {
+          MathJax.startup.defaultReady();
+          if (typeof window.onMathJaxReady === 'function') {
+            window.onMathJaxReady();
+          }
+        }
+      }
+    };
+  </script>
+  <!-- MathJax v3 tex-svg-full (Includes mhchem, ams, cancel, etc. out of the box) -->
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg-full.js"></script>
+
+  <style>
+    /* Checkerboard background for transparent preview */
+    .bg-checkerboard {
+      background-color: #f8fafc;
+      background-image: 
+        linear-gradient(45deg, #e2e8f0 25%, transparent 25%), 
+        linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #e2e8f0 75%), 
+        linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    }
+    .dark .bg-checkerboard {
+      background-color: #1e293b;
+      background-image: 
+        linear-gradient(45deg, #334155 25%, transparent 25%), 
+        linear-gradient(-45deg, #334155 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #334155 75%), 
+        linear-gradient(-45deg, transparent 75%, #334155 75%);
+    }
+
+    /* Smooth custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.4);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.7);
+    }
+
+    /* Touch optimization for iPad */
+    button, .touch-btn {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    /* Ensure MathJax SVG inside buttons scales nicely */
+    .palette-btn mjx-container {
+      pointer-events: none;
+      margin: 0 !important;
+    }
+    .palette-btn svg {
+      max-height: 1.85rem;
+      width: auto;
+    }
+
+    /* Live preview SVG container */
+    #math-render-container mjx-container {
+      margin: 0 !important;
+      display: inline-block !important;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+  <!-- Top Header -->
+  <header class="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 lg:px-6 py-3">
+    <div class="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-3">
+      <!-- App Title & Badge -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 font-bold text-lg">
+          <i class="fa-solid fa-square-root-variable"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg sm:text-xl font-bold tracking-tight bg-gradient-to-r from-indigo-600 to-cyan-600 dark:from-indigo-400 dark:to-cyan-400 bg-clip-text text-transparent">
+              数式・化学式ジェネレーター
+            </h1>
+            <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+              SVG → 超高画質PNG
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            数学・化学の複雑な式を美しく作成し、ノートアプリや資料へワンタップ出力
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick Header Actions -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Preset Trigger Button -->
+        <button onclick="openModal('preset-modal')" class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/70 text-xs sm:text-sm font-semibold transition shadow-sm">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>定番プリセット</span>
+        </button>
+
+        <!-- Saved / History Trigger Button -->
+        <button onclick="openModal('history-modal')" class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-semibold transition shadow-sm">
+          <i class="fa-solid fa-bookmark text-indigo-500"></i>
+          <span>保存・履歴</span>
+          <span id="saved-count-badge" class="px-1.5 py-0.2 bg-indigo-600 text-white rounded-full text-[11px] leading-tight">0</span>
+        </button>
+
+        <!-- Syntax Guide Button -->
+        <button onclick="openModal('guide-modal')" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition" title="入力ガイド・ヒント">
+          <i class="fa-regular fa-circle-question text-base"></i>
+        </button>
+
+        <!-- Dark Mode Toggle -->
+        <button id="theme-toggle-btn" onclick="toggleTheme()" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition" title="テーマ切り替え">
+          <i id="theme-icon" class="fa-solid fa-moon text-base"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace Container -->
+  <main class="flex-1 max-w-[1600px] w-full mx-auto p-3 sm:p-5 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
+    
+    <!-- LEFT COLUMN: Formula Palette & Editor (7 cols on large screens) -->
+    <section class="lg:col-span-7 flex flex-col gap-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/90 dark:border-slate-800 p-4 sm:p-5">
+      
+      <!-- 1. Palette Section -->
+      <div>
+        <div class="flex items-center justify-between mb-2.5">
+          <h2 class="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-table-cells text-indigo-500"></i>
+            <span>直感入力パレット（タップでカーソル位置に挿入）</span>
+          </h2>
+          <span class="text-[11px] text-slate-400 dark:text-slate-500 hidden sm:inline">
+            <i class="fa-solid fa-tablet-screen-button mr-1"></i>iPadタッチ操作最適化済
+          </span>
+        </div>
+
+        <!-- Category Tabs -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/90 rounded-xl mb-3" role="tablist">
+          <button onclick="switchPaletteTab('basic')" id="tab-btn-basic" class="tab-btn flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm">
+            <i class="fa-solid fa-divide"></i>
+            <span>基本・代数</span>
+          </button>
+          <button onclick="switchPaletteTab('calculus')" id="tab-btn-calculus" class="tab-btn flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+            <i class="fa-solid fa-infinity"></i>
+            <span>微積分・解析</span>
+          </button>
+          <button onclick="switchPaletteTab('symbols')" id="tab-btn-symbols" class="tab-btn flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+            <i class="fa-solid fa-omega"></i>
+            <span>記号・ギリシャ</span>
+          </button>
+          <button onclick="switchPaletteTab('chem')" id="tab-btn-chem" class="tab-btn flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+            <i class="fa-solid fa-flask"></i>
+            <span>化学・反応式</span>
+          </button>
+        </div>
+
+        <!-- Palette Grid Container -->
+        <div id="palette-container" class="bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 rounded-xl p-2.5 sm:p-3 min-h-[220px] max-h-[320px] overflow-y-auto">
+          <!-- Populated dynamically by JS -->
+        </div>
+      </div>
+
+      <!-- 2. Formula Editor & Quick Cursor Toolbar -->
+      <div class="flex flex-col gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+        <!-- Quick Assist Bar (Especially helpful on iPad / Touch devices) -->
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-xs font-bold text-slate-500 dark:text-slate-400 mr-1">カーソル・編集:</span>
+            <button onclick="moveCursor(-1)" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition flex items-center gap-1 shadow-sm" title="カーソルを左へ移動">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <button onclick="moveCursor(1)" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition flex items-center gap-1 shadow-sm" title="カーソルを右へ移動">
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+            <button onclick="jumpToNextPlaceholder()" class="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 active:bg-indigo-200 dark:bg-indigo-950/70 dark:hover:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 text-xs font-semibold transition flex items-center gap-1 shadow-sm" title="次のカッコ {} の中へジャンプ">
+              <i class="fa-solid fa-forward-step"></i>
+              <span>次の { } へ</span>
+            </button>
+            <button onclick="insertSnippet('\\\\ ', 0)" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition shadow-sm" title="スペースを挿入">
+              空白
+            </button>
+            <button onclick="insertSnippet(' \\\\ \n', 0)" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition shadow-sm" title="改行を挿入">
+              改行 ↵
+            </button>
+            <button onclick="insertSnippet('\\text{文字}', -1, 2)" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition shadow-sm" title="日本語や通常テキストを挿入">
+              文字 \text{}
+            </button>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <button onclick="undoEditor()" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold transition" title="元に戻す">
+              <i class="fa-solid fa-rotate-left"></i>
+            </button>
+            <button onclick="backspaceAtCursor()" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold transition" title="1文字削除">
+              <i class="fa-solid fa-delete-left"></i>
+            </button>
+            <button onclick="clearEditor()" class="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 text-xs font-semibold transition flex items-center gap-1">
+              <i class="fa-regular fa-trash-can"></i>
+              <span>クリア</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- LaTeX / mhchem Input Textarea -->
+        <div class="relative">
+          <textarea
+            id="formula-input"
+            rows="4"
+            spellcheck="false"
+            autocapitalize="off"
+            autocomplete="off"
+            autocorrect="off"
+            placeholder="ここに数式・化学式を入力、または上のパレットをタップしてください（例: \frac{-b \pm \sqrt{b^2 - 4ac}}{2a} や \ce{2H2 + O2 -> 2H2O}）"
+            class="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 focus:border-indigo-500 dark:focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 p-3.5 font-mono text-sm sm:text-base text-slate-800 dark:text-slate-100 outline-none transition resize-y leading-relaxed"
+          >x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}</textarea>
+          <div class="absolute bottom-2.5 right-3 flex items-center gap-2">
+            <button onclick="copyLatexCode()" class="px-2.5 py-1 rounded-lg bg-white/90 dark:bg-slate-800/90 hover:bg-slate-100 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 text-[11px] font-medium shadow-sm transition flex items-center gap-1">
+              <i class="fa-regular fa-copy"></i>
+              <span>TeXコピー</span>
+            </button>
+            <button onclick="saveCurrentFormula()" class="px-2.5 py-1 rounded-lg bg-indigo-50/90 dark:bg-indigo-950/90 hover:bg-indigo-100 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-[11px] font-semibold shadow-sm transition flex items-center gap-1">
+              <i class="fa-regular fa-bookmark"></i>
+              <span>式を保存</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Sample Chips -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 no-scrollbar">
+          <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 shrink-0">ワンタップ例:</span>
+          <button onclick="loadFormula('x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}')" class="shrink-0 px-2.5 py-1 rounded-full bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-indigo-950/70 text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-300 text-xs font-medium transition">
+            解の公式
+          </button>
+          <button onclick="loadFormula('\\int_{0}^{\\pi} x \\sin x \\, dx = \\left[ -x \\cos x \\right]_{0}^{\\pi} + \\int_{0}^{\\pi} \\cos x \\, dx = \\pi')" class="shrink-0 px-2.5 py-1 rounded-full bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-indigo-950/70 text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-300 text-xs font-medium transition">
+            部分積分
+          </button>
+          <button onclick="loadFormula('\\ce{CH3COOH + H2O <=> CH3COO- + H3O+}')" class="shrink-0 px-2.5 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs font-medium transition">
+            酢酸の電離平衡
+          </button>
+          <button onclick="loadFormula('K_a = \\frac{[\\ce{CH3COO-}][\\ce{H+}]}{[\\ce{CH3COOH}]} = \\frac{c\\alpha^2}{1 - \\alpha}')" class="shrink-0 px-2.5 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs font-medium transition">
+            電離定数 Ka
+          </button>
+          <button onclick="loadFormula('\\ce{MnO4^- + 8H+ + 5e- -> Mn^2+ + 4H2O}')" class="shrink-0 px-2.5 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs font-medium transition">
+            酸化還元反応式
+          </button>
+          <button onclick="loadFormula('{}^{14}_{6}\\text{C} \\longrightarrow {}^{14}_{7}\\text{N} + \\ce{e-} + \\bar{\\nu}_e')" class="shrink-0 px-2.5 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs font-medium transition">
+            同位体・β崩壊
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT COLUMN: Live Preview, Style Customizer & High-Res PNG Export (5 cols on large screens) -->
+    <section class="lg:col-span-5 flex flex-col gap-4">
+      
+      <!-- 1. Real-time Preview & Export Card -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/90 dark:border-slate-800 p-4 sm:p-5 flex flex-col gap-4">
+        
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-eye text-indigo-500"></i>
+            <span>リアルタイムプレビュー & 画像出力</span>
+          </h2>
+          <div id="image-dimensions-badge" class="text-[11px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+            計算中...
+          </div>
+        </div>
+
+        <!-- Hidden MathJax SVG Render Staging Area -->
+        <div id="math-render-wrapper" class="sr-only" aria-hidden="true">
+          <div id="math-render-container"></div>
+        </div>
+
+        <!-- Interactive Live Preview Area (Displays the actual generated crisp PNG inside an <img> tag!) -->
+        <div class="relative group">
+          <div id="preview-stage" class="bg-checkerboard w-full min-h-[180px] sm:min-h-[210px] rounded-xl border-2 border-slate-200/90 dark:border-slate-800 flex items-center justify-center p-4 overflow-auto transition-all">
+            <!-- Generated High-Res PNG is rendered directly here so users can also drag/long-press right away -->
+            <img
+              id="live-png-preview"
+              alt="数式プレビュー画像"
+              class="max-w-full max-h-[260px] object-contain rounded shadow-sm transition-transform duration-150 select-auto"
+            />
+            <!-- Error / Empty state overlay -->
+            <div id="render-error-box" class="hidden text-center px-4 py-3 rounded-lg bg-rose-50 dark:bg-rose-950/80 text-rose-600 dark:text-rose-300 text-xs font-medium border border-rose-200 dark:border-rose-800">
+              数式の構文を確認してください
+            </div>
+          </div>
+
+          <!-- Floating Expand Button for iPad Long-press Modal -->
+          <button
+            onclick="openModal('ipad-preview-modal')"
+            class="absolute top-2.5 right-2.5 px-2.5 py-1.5 rounded-lg bg-slate-900/75 hover:bg-slate-900 text-white text-xs font-medium backdrop-blur-sm shadow transition flex items-center gap-1.5"
+            title="拡大表示して長押し保存"
+          >
+            <i class="fa-solid fa-expand"></i>
+            <span>拡大 / 長押し用表示</span>
+          </button>
+        </div>
+
+        <!-- iPad / Safari Helpful Tip Banner -->
+        <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/50 text-xs text-indigo-800 dark:text-indigo-200">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-hand-pointer text-indigo-500 text-sm shrink-0"></i>
+            <span><strong>iPadの裏技:</strong> 上のプレビュー画像を直接<strong>長押し</strong>して「写真に保存」「コピー」するか、Split ViewでGoodNotes等へそのまま<strong>ドラッグ＆ドロップ</strong>できます！</span>
+          </div>
+        </div>
+
+        <!-- Primary Action Buttons (Download / Copy / iPad Modal) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <!-- Download PNG Button -->
+          <button
+            onclick="downloadPngImage()"
+            class="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 active:scale-[0.99] text-white font-bold text-sm shadow-md shadow-indigo-500/20 transition"
+          >
+            <i class="fa-solid fa-download"></i>
+            <span>PNG画像をダウンロード</span>
+          </button>
+
+          <!-- Copy PNG to Clipboard Button -->
+          <button
+            onclick="copyPngToClipboard()"
+            id="copy-png-btn"
+            class="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold text-sm shadow-md shadow-emerald-600/20 transition"
+          >
+            <i class="fa-regular fa-copy"></i>
+            <span>画像をクリップボードにコピー</span>
+          </button>
+        </div>
+
+        <!-- Secondary Export Row (iPad Large Modal & SVG Download) -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <button
+            onclick="openModal('ipad-preview-modal')"
+            class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs border border-slate-200 dark:border-slate-700 transition"
+          >
+            <i class="fa-solid fa-tablet-screen-button text-indigo-500"></i>
+            <span>長押し保存専用画面 (iPad)</span>
+          </button>
+
+          <button
+            onclick="downloadSvgImage()"
+            class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs border border-slate-200 dark:border-slate-700 transition"
+          >
+            <i class="fa-solid fa-bezier-curve text-cyan-500"></i>
+            <span>ベクター (SVG) 保存</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Style & Resolution Customizer Card -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/90 dark:border-slate-800 p-4 sm:p-5 flex flex-col gap-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-sliders text-indigo-500"></i>
+            <span>スタイル・高解像度カスタマイズ</span>
+          </h2>
+          <button onclick="resetStyleSettings()" class="text-xs text-slate-400 hover:text-indigo-500 transition">
+            初期設定に戻す
+          </button>
+        </div>
+
+        <!-- Background Color Selection -->
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold text-slate-600 dark:text-slate-300">背景設定</label>
+          <div class="grid grid-cols-4 gap-2">
+            <button onclick="setBgMode('transparent')" id="bg-btn-transparent" class="bg-mode-btn py-2 px-2 rounded-xl border-2 border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/40 text-xs font-bold flex items-center justify-center gap-1.5 transition">
+              <span class="w-3.5 h-3.5 rounded-full border border-slate-400 bg-checkerboard inline-block"></span>
+              <span>透過</span>
+            </button>
+            <button onclick="setBgMode('white')" id="bg-btn-white" class="bg-mode-btn py-2 px-2 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 text-xs font-bold flex items-center justify-center gap-1.5 transition">
+              <span class="w-3.5 h-3.5 rounded-full border border-slate-300 bg-white inline-block"></span>
+              <span>白背景</span>
+            </button>
+            <button onclick="setBgMode('black')" id="bg-btn-black" class="bg-mode-btn py-2 px-2 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 text-xs font-bold flex items-center justify-center gap-1.5 transition">
+              <span class="w-3.5 h-3.5 rounded-full border border-slate-600 bg-slate-900 inline-block"></span>
+              <span>黒背景</span>
+            </button>
+            <label id="bg-btn-custom" class="bg-mode-btn py-2 px-2 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition">
+              <input type="color" id="custom-bg-picker" value="#fef3c7" onchange="setBgMode('custom', this.value)" class="w-4 h-4 rounded cursor-pointer border-0 bg-transparent p-0">
+              <span>自由色</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Text / Formula Color Selection -->
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-bold text-slate-600 dark:text-slate-300">文字・数式のカラー</label>
+          <div class="grid grid-cols-6 gap-2">
+            <button onclick="setTextColor('#0f172a', 'black')" id="text-btn-black" class="text-color-btn py-2 px-2 rounded-xl border-2 border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/40 text-xs font-bold flex items-center justify-center gap-1 transition">
+              <span class="w-3.5 h-3.5 rounded-full bg-slate-900 border border-slate-400"></span>
+              <span>黒</span>
+            </button>
+            <button onclick="setTextColor('#ffffff', 'white')" id="text-btn-white" class="text-color-btn py-2 px-2 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-xs font-bold flex items-center justify-center gap-1 transition">
+              <span class="w-3.5 h-3.5 rounded-full bg-white border border-slate-300"></span>
+              <span>白</span>
+            </button>
+            <button onclick="setTextColor('#2563eb', 'blue')" id="text-btn-blue" class="text-color-btn py-2 px-2 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-xs font-bold flex items-center justify-center gap-1 transition">
+              <span class="w-3.5 h-3.5 rounded-full bg-blue-600"></span>
+              <span>青</span>
+            </button>
+            <button onclick="setTextColor('#dc2626', 'red')" id="text-btn-red" class="text-color-btn py-2 px-2 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-xs font-bold flex items-center justify-center gap-1 transition">
+              <span class="w-3.5 h-3.5 rounded-full bg-red-600"></span>
+              <span>赤</span>
+            </button>
+            <button onclick="setTextColor('#059669', 'green')" id="text-btn-green" class="text-color-btn py-2 px-2 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-xs font-bold flex items-center justify-center gap-1 transition">
+              <span class="w-3.5 h-3.5 rounded-full bg-emerald-600"></span>
+              <span>緑</span>
+            </button>
+            <label id="text-btn-custom" class="text-color-btn py-2 px-2 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer transition">
+              <input type="color" id="custom-text-picker" value="#7c3aed" onchange="setTextColor(this.value, 'custom')" class="w-4 h-4 rounded cursor-pointer border-0 bg-transparent p-0">
+              <span>他</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Resolution Scale & Padding Sliders -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+          <!-- Resolution Scale -->
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center justify-between">
+              <span>出力解像度 (スケール)</span>
+              <span id="scale-label" class="text-indigo-600 dark:text-indigo-400 font-mono">3x (高画質)</span>
+            </label>
+            <div class="grid grid-cols-3 gap-1.5">
+              <button onclick="setResolutionScale(2)" id="scale-btn-2" class="scale-btn py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold transition">
+                標準 (2x)
+              </button>
+              <button onclick="setResolutionScale(3)" id="scale-btn-3" class="scale-btn py-2 rounded-lg border-2 border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-300 text-xs font-bold transition">
+                高画質 (3x)
+              </button>
+              <button onclick="setResolutionScale(4)" id="scale-btn-4" class="scale-btn py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold transition">
+                超高画質 (4x)
+              </button>
+            </div>
+          </div>
+
+          <!-- Padding Slider -->
+          <div class="flex flex-col gap-1.5">
+            <div class="flex items-center justify-between">
+              <label for="padding-slider" class="text-xs font-bold text-slate-600 dark:text-slate-300">余白 (パディング)</label>
+              <span id="padding-value-label" class="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">24 px</span>
+            </div>
+            <input
+              id="padding-slider"
+              type="range"
+              min="4"
+              max="80"
+              step="4"
+              value="24"
+              oninput="updatePadding(this.value)"
+              class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600 mt-2"
+            />
+            <div class="flex justify-between text-[10px] text-slate-400">
+              <span>最小 (4px)</span>
+              <span>標準 (24px)</span>
+              <span>広め (80px)</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= MODALS ================= -->
+
+  <!-- 1. iPad Dedicated Long-Press & Copy Modal -->
+  <div id="ipad-preview-modal" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-3xl w-full p-5 sm:p-6 shadow-2xl flex flex-col gap-4">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+            <i class="fa-solid fa-tablet-screen-button"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-slate-800 dark:text-slate-100">iPad 長押し保存・ドラッグ＆ドロップ用プレビュー</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">下の画像を指やApple Pencilで長押しすると「写真に保存」や「コピー」が選べます</p>
+          </div>
+        </div>
+        <button onclick="closeModal('ipad-preview-modal')" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Large Crisp Image Display -->
+      <div class="bg-checkerboard rounded-xl border-2 border-dashed border-indigo-300 dark:border-indigo-800 p-6 min-h-[240px] flex items-center justify-center overflow-auto">
+        <img id="modal-png-preview" alt="長押し保存用PNG画像" class="max-w-full max-h-[50vh] object-contain rounded shadow-md" />
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl border border-slate-200/70 dark:border-slate-700">
+        <div class="flex items-start gap-2">
+          <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center shrink-0">1</span>
+          <span><strong>長押しで保存:</strong> 画像を長押しして「”写真”に保存」または「コピー」をタップ</span>
+        </div>
+        <div class="flex items-start gap-2">
+          <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center shrink-0">2</span>
+          <span><strong>ノートへ直接ドラッグ:</strong> Split View中に画像を長押しして隣のGoodNotes等へドラッグ</span>
+        </div>
+        <div class="flex items-start gap-2">
+          <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center shrink-0">3</span>
+          <span><strong>透過対応:</strong> 背景を「透過」にしておけばダークノートの紙面にも綺麗に馴染みます</span>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-1">
+        <button onclick="downloadPngImage()" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold flex items-center gap-2">
+          <i class="fa-solid fa-download"></i>
+          <span>ファイルとして保存 (.png)</span>
+        </button>
+        <button onclick="closeModal('ipad-preview-modal')" class="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-bold">
+          閉じる
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Presets Modal -->
+  <div id="preset-modal" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-4xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+      <div class="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-wand-magic-sparkles text-amber-500 text-lg"></i>
+          <h3 class="font-bold text-base sm:text-lg">数学・化学 定番プリセット集</h3>
+        </div>
+        <button onclick="closeModal('preset-modal')" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div id="preset-list-container" class="p-4 sm:p-5 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-3">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Saved & History Modal -->
+  <div id="history-modal" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+      <div class="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-bookmark text-indigo-500 text-lg"></i>
+          <div>
+            <h3 class="font-bold text-base sm:text-lg">保存した式・お気に入り一覧</h3>
+            <p class="text-xs text-slate-500">ブラウザ(localStorage)に自動保存され、次回アクセス時も残ります</p>
+          </div>
+        </div>
+        <button onclick="closeModal('history-modal')" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 flex flex-wrap sm:flex-nowrap gap-2">
+        <input
+          type="text"
+          id="save-title-input"
+          placeholder="現在の式に名前を付けて保存（例: 酢酸の電離定数、中間テスト対策）"
+          class="flex-1 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 text-sm outline-none focus:border-indigo-500"
+        />
+        <button onclick="saveCurrentFormulaWithCustomTitle()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold shrink-0 flex items-center gap-1.5">
+          <i class="fa-solid fa-plus"></i>
+          <span>現在の式を保存</span>
+        </button>
+      </div>
+
+      <div id="saved-list-container" class="p-4 sm:p-5 overflow-y-auto flex flex-col gap-2.5 flex-1">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Quick Syntax Guide Modal -->
+  <div id="guide-modal" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+      <div class="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-book-open text-indigo-500 text-lg"></i>
+          <h3 class="font-bold text-base sm:text-lg">数式・化学式を綺麗に作るコツ</h3>
+        </div>
+        <button onclick="closeModal('guide-modal')" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div class="p-5 overflow-y-auto space-y-4 text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+        <div class="p-3.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/50">
+          <h4 class="font-bold text-indigo-900 dark:text-indigo-200 mb-1">💡 1. パレットと「次の { } へ」ボタンの活用</h4>
+          <p>パレットのボタンをタップすると、カーソル位置にコマンドが挿入され、最初の入力箇所（分子など）に自動でカーソルが入ります。分母や次の引数に移りたいときは、エディタ上の<strong>「次の { } へ」</strong>ボタンをタップすると素早く移動できます。</p>
+        </div>
+        <div class="p-3.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/50">
+          <h4 class="font-bold text-emerald-900 dark:text-emerald-200 mb-1">🧪 2. 化学式は <code class="font-mono bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded">\ce{...}</code> が超便利！</h4>
+          <p>MathJaxの化学拡張（mhchem）を搭載しているため、<code class="font-mono">\ce{H2O}</code> と書くだけで自動的に下付き文字の $\text{H}_2\text{O}$ になります。<br>
+          ・イオン：<code class="font-mono">\ce{SO4^2-}</code> → $\text{SO}_4^{2-}$<br>
+          ・可逆反応：<code class="font-mono">\ce{N2 + 3H2 <=> 2NH3}</code><br>
+          ・沈殿・気体：<code class="font-mono">\ce{AgCl v}</code>（$\downarrow$）、<code class="font-mono">\ce{H2 ^}</code>（$\uparrow$）</p>
+        </div>
+        <div class="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/50">
+          <h4 class="font-bold text-amber-900 dark:text-amber-200 mb-1">📐 3. 大きいカッコを自動調整するには</h4>
+          <p>分数の外側を囲むカッコは、普通の <code class="font-mono">( )</code> ではなくパレットの<strong>「自動伸縮 ( )」</strong>（<code class="font-mono">\left( \sim \right)</code>）を使うと、分数の高さに合わせて美しいサイズに自動伸縮します。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 pointer-events-none flex flex-col gap-2"></div>
+
+  <!-- ================= APPLICATION JAVASCRIPT ================= -->
+  <script>
+    // --- 1. Application State ---
+    const state = {
+      currentTab: 'basic',
+      bgMode: 'transparent', // 'transparent' | 'white' | 'black' | 'custom'
+      customBgColor: '#fef3c7',
+      textColor: '#0f172a',
+      textColorName: 'black',
+      scale: 3,              // 2x, 3x, 4x
+      padding: 24,           // px in base 1x coordinate
+      historyUndoStack: ['x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}'],
+      currentPngDataUrl: '',
+      currentPngBlob: null,
+      currentSvgString: '',
+      isMathJaxReady: false,
+      savedFormulas: []
+    };
+
+    const STORAGE_KEY_SAVED = 'math_chem_studio_saved_v1';
+
+    // --- 2. Comprehensive Formula Palettes Data ---
+    // cursorOffset: negative offset from end of inserted string, or selection length
+    const PALETTE_DATA = {
+      basic: [
+        { label: '分数', preview: '\\frac{a}{b}', insert: '\\frac{a}{b}', selectStart: 6, selectEnd: 7 },
+        { label: '累乗 (上付き)', preview: 'x^{n}', insert: 'x^{n}', selectStart: 3, selectEnd: 4 },
+        { label: '添え字 (下付き)', preview: 'x_{n}', insert: 'x_{n}', selectStart: 3, selectEnd: 4 },
+        { label: '上下添え字', preview: 'x_{i}^{2}', insert: 'x_{i}^{2}', selectStart: 3, selectEnd: 4 },
+        { label: '平方根 (ルート)', preview: '\\sqrt{x}', insert: '\\sqrt{x}', selectStart: 6, selectEnd: 7 },
+        { label: 'n乗根', preview: '\\sqrt[n]{x}', insert: '\\sqrt[n]{x}', selectStart: 6, selectEnd: 7 },
+        { label: '絶対値', preview: '\\left| x \\right|', insert: '\\left| x \\right|', selectStart: 7, selectEnd: 8 },
+        { label: '自動伸縮 ( )', preview: '\\left( \\frac{a}{b} \\right)', insert: '\\left( x \\right)', selectStart: 7, selectEnd: 8 },
+        { label: '自動伸縮 [ ]', preview: '\\left[ x \\right]', insert: '\\left[ x \\right]', selectStart: 7, selectEnd: 8 },
+        { label: '自動伸縮 { }', preview: '\\left\\{ x \\right\\}', insert: '\\left\\{ x \\right\\}', selectStart: 8, selectEnd: 9 },
+        { label: '対数 log', preview: '\\log_{a}{M}', insert: '\\log_{a}{M}', selectStart: 6, selectEnd: 7 },
+        { label: '自然対数 ln', preview: '\\ln{x}', insert: '\\ln{x}', selectStart: 4, selectEnd: 5 },
+        { label: '連立方程式', preview: '\\begin{cases} a \\\\ b \\end{cases}', insert: '\\begin{cases} x + y = 1 \\\\ x - y = 3 \\end{cases}', selectStart: 14, selectEnd: 23 },
+        { label: '順列・組合せ', preview: '{}_{n}\\text{C}_{r}', insert: '{}_{n}\\text{C}_{r}', selectStart: 4, selectEnd: 5 },
+        { label: '約分・消去線', preview: '\\cancel{x}', insert: '\\cancel{x}', selectStart: 8, selectEnd: 9 },
+        { label: '三角関数', preview: '\\sin\\theta, \\cos\\theta', insert: '\\sin{\\theta}', selectStart: 5, selectEnd: 11 },
+        { label: '平均・バー', preview: '\\overline{x}', insert: '\\overline{x}', selectStart: 10, selectEnd: 11 },
+        { label: 'ハット', preview: '\\hat{p}', insert: '\\hat{p}', selectStart: 5, selectEnd: 6 },
+        { label: 'アンダーブレース', preview: '\\underbrace{a+b}_{n}', insert: '\\underbrace{a+b}_{\\text{説明}}', selectStart: 12, selectEnd: 15 },
+        { label: '色付き文字', preview: '\\textcolor{red}{x}', insert: '\\textcolor{red}{x}', selectStart: 16, selectEnd: 17 }
+      ],
+      calculus: [
+        { label: '極限 (lim)', preview: '\\lim_{x \\to \\infty}', insert: '\\lim_{x \\to \\infty} ', selectStart: 6, selectEnd: 18 },
+        { label: '0への極限', preview: '\\lim_{h \\to 0}', insert: '\\lim_{h \\to 0} \\frac{f(x+h)-f(x)}{h}', selectStart: 16, selectEnd: 37 },
+        { label: '微分 dy/dx', preview: '\\frac{dy}{dx}', insert: '\\frac{dy}{dx}', selectStart: 6, selectEnd: 8 },
+        { label: '微分 d/dx', preview: '\\frac{d}{dx}f(x)', insert: '\\frac{d}{dx}', selectStart: 12, selectEnd: 12 },
+        { label: '偏微分 ∂', preview: '\\frac{\\partial f}{\\partial x}', insert: '\\frac{\\partial f}{\\partial x}', selectStart: 15, selectEnd: 16 },
+        { label: '不定積分', preview: '\\int f(x)\\,dx', insert: '\\int f(x) \\, dx', selectStart: 5, selectEnd: 9 },
+        { label: '定積分', preview: '\\int_{a}^{b} f(x)\\,dx', insert: '\\int_{a}^{b} f(x) \\, dx', selectStart: 6, selectEnd: 7 },
+        { label: '定積分角カッコ', preview: '\\left[ F(x) \\right]_{a}^{b}', insert: '\\left[ F(x) \\right]_{a}^{b}', selectStart: 7, selectEnd: 11 },
+        { label: '総和 (シグマ)', preview: '\\sum_{k=1}^{n} a_k', insert: '\\sum_{k=1}^{n} a_k', selectStart: 15, selectEnd: 18 },
+        { label: '総乗 (パイ)', preview: '\\prod_{k=1}^{n} a_k', insert: '\\prod_{k=1}^{n} a_k', selectStart: 16, selectEnd: 19 },
+        { label: 'ベクトル矢印', preview: '\\vec{a}', insert: '\\vec{a}', selectStart: 5, selectEnd: 6 },
+        { label: '2点間ベクトル', preview: '\\overrightarrow{AB}', insert: '\\overrightarrow{AB}', selectStart: 16, selectEnd: 18 },
+        { label: '内積・ドット', preview: '\\vec{a} \\cdot \\vec{b}', insert: '\\vec{a} \\cdot \\vec{b}', selectStart: 5, selectEnd: 6 },
+        { label: '列ベクトル (2D)', preview: '\\begin{pmatrix} x \\\\ y \\end{pmatrix}', insert: '\\begin{pmatrix} x \\\\ y \\end{pmatrix}', selectStart: 16, selectEnd: 17 },
+        { label: '列ベクトル (3D)', preview: '\\begin{pmatrix} x \\\\ y \\\\ z \\end{pmatrix}', insert: '\\begin{pmatrix} x \\\\ y \\\\ z \\end{pmatrix}', selectStart: 16, selectEnd: 17 },
+        { label: '2×2 行列', preview: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}', insert: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}', selectStart: 16, selectEnd: 17 },
+        { label: '2×2 行列式', preview: '\\begin{vmatrix} a & b \\\\ c & d \\end{vmatrix}', insert: '\\begin{vmatrix} a & b \\\\ c & d \\end{vmatrix}', selectStart: 16, selectEnd: 17 },
+        { label: '3×3 行列', preview: '\\begin{pmatrix} a & b & c \\\\ d & e & f \\\\ g & h & i \\end{pmatrix}', insert: '\\begin{pmatrix} a & b & c \\\\ d & e & f \\\\ g & h & i \\end{pmatrix}', selectStart: 16, selectEnd: 17 },
+        { label: '重積分', preview: '\\iint_{D} dx\\,dy', insert: '\\iint_{D} f(x,y) \\, dx\\,dy', selectStart: 7, selectEnd: 8 },
+        { label: '周回積分', preview: '\\oint_{C}', insert: '\\oint_{C} ', selectStart: 7, selectEnd: 8 }
+      ],
+      symbols: [
+        { label: 'α アルファ', preview: '\\alpha', insert: '\\alpha ' },
+        { label: 'β ベータ', preview: '\\beta', insert: '\\beta ' },
+        { label: 'γ ガンマ', preview: '\\gamma', insert: '\\gamma ' },
+        { label: 'δ デルタ', preview: '\\delta', insert: '\\delta ' },
+        { label: 'Δ 大デルタ', preview: '\\Delta', insert: '\\Delta ' },
+        { label: 'ε イプシロン', preview: '\\varepsilon', insert: '\\varepsilon ' },
+        { label: 'θ シータ', preview: '\\theta', insert: '\\theta ' },
+        { label: 'λ ラムダ', preview: '\\lambda', insert: '\\lambda ' },
+        { label: 'μ ミュー', preview: '\\mu', insert: '\\mu ' },
+        { label: 'π パイ', preview: '\\pi', insert: '\\pi ' },
+        { label: 'ρ ロー', preview: '\\rho', insert: '\\rho ' },
+        { label: 'σ シグマ', preview: '\\sigma', insert: '\\sigma ' },
+        { label: 'φ ファイ', preview: '\\phi', insert: '\\phi ' },
+        { label: 'ω オメガ', preview: '\\omega', insert: '\\omega ' },
+        { label: 'Ω 大オメガ', preview: '\\Omega', insert: '\\Omega ' },
+        { label: '∞ 無限大', preview: '\\infty', insert: '\\infty ' },
+        { label: '± プラスマイナス', preview: '\\pm', insert: '\\pm ' },
+        { label: '∓ マイプラ', preview: '\\mp', insert: '\\mp ' },
+        { label: '× 掛ける', preview: '\\times', insert: '\\times ' },
+        { label: '÷ 割る', preview: '\\div', insert: '\\div ' },
+        { label: '・ 中黒', preview: '\\cdot', insert: '\\cdot ' },
+        { label: '≠ ノットイコール', preview: '\\neq', insert: '\\neq ' },
+        { label: '≈ ニアリー', preview: '\\approx', insert: '\\approx ' },
+        { label: '≒ ほぼ等しい', preview: '\\fallingdotseq', insert: '\\fallingdotseq ' },
+        { label: '≤ 以下', preview: '\\leq', insert: '\\leq ' },
+        { label: '≥ 以上', preview: '\\geq', insert: '\\geq ' },
+        { label: '≪ 非常に小', preview: '\\ll', insert: '\\ll ' },
+        { label: '≫ 非常に大', preview: '\\gg', insert: '\\gg ' },
+        { label: '∝ 比例', preview: '\\propto', insert: '\\propto ' },
+        { label: '⇒ ならば', preview: '\\Rightarrow', insert: '\\Rightarrow ' },
+        { label: '⇔ 同値', preview: '\\iff', insert: '\\iff ' },
+        { label: '∈ 属する', preview: '\\in', insert: '\\in ' },
+        { label: '⊂ 部分集合', preview: '\\subset', insert: '\\subset ' },
+        { label: '∪ 和集合', preview: '\\cup', insert: '\\cup ' },
+        { label: '∩ 共通部分', preview: '\\cap', insert: '\\cap ' },
+        { label: '∴ ゆえに', preview: '\\therefore', insert: '\\therefore ' },
+        { label: '∵ なぜなら', preview: '\\because', insert: '\\because ' },
+        { label: '∠ 角', preview: '\\angle', insert: '\\angle ' },
+        { label: '⊥ 垂直', preview: '\\perp', insert: '\\perp ' },
+        { label: '℃ 温度', preview: '^\\circ\\text{C}', insert: '^\\circ\\text{C}' }
+      ],
+      chem: [
+        { label: '化学式 \\ce{}', preview: '\\ce{H2O}', insert: '\\ce{H2O}', selectStart: 4, selectEnd: 7 },
+        { label: '反応矢印 →', preview: '\\ce{->}', insert: ' \\longrightarrow ' },
+        { label: '可逆反応 ⇄', preview: '\\ce{<=>}', insert: ' \\rightleftharpoons ' },
+        { label: '加熱反応 Δ', preview: '\\xrightarrow{\\Delta}', insert: ' \\xrightarrow{\\Delta} ' },
+        { label: '触媒・条件矢印', preview: '\\xrightarrow[\\text{条件}]{\\text{触媒}}', insert: ' \\xrightarrow[\\text{条件}]{\\text{触媒}} ', selectStart: 19, selectEnd: 21 },
+        { label: '同位体・質量数', preview: '{}^{14}_{6}\\text{C}', insert: '{}^{14}_{6}\\text{C}', selectStart: 4, selectEnd: 6 },
+        { label: 'イオン式 (陽)', preview: '\\ce{NH4+}', insert: '\\ce{NH4+}', selectStart: 4, selectEnd: 8 },
+        { label: 'イオン式 (陰)', preview: '\\ce{SO4^2-}', insert: '\\ce{SO4^2-}', selectStart: 4, selectEnd: 10 },
+        { label: 'オキソニウム', preview: '\\ce{H3O+}', insert: '\\ce{H3O+}' },
+        { label: '水酸化物イオン', preview: '\\ce{OH-}', insert: '\\ce{OH-}' },
+        { label: '酢酸イオン', preview: '\\ce{CH3COO-}', insert: '\\ce{CH3COO-}' },
+        { label: '電子 e⁻', preview: '\\ce{e-}', insert: '\\ce{e-}' },
+        { label: '気体発生 ↑', preview: '\\uparrow', insert: ' \\uparrow ' },
+        { label: '沈殿生成 ↓', preview: '\\downarrow', insert: ' \\downarrow ' },
+        { label: 'モル濃度 [A]', preview: '[\\ce{H+}]', insert: '[\\ce{H+}]', selectStart: 5, selectEnd: 7 },
+        { label: '平衡定数式 K', preview: 'K = \\frac{[\\ce{C}]}{[\\ce{A}]}', insert: 'K = \\frac{[\\ce{C}]^c [\\ce{D}]^d}{[\\ce{A}]^a [\\ce{B}]^b}', selectStart: 15, selectEnd: 16 },
+        { label: '水和物 ・', preview: '\\ce{CuSO4 . 5H2O}', insert: '\\ce{CuSO4 * 5H2O}' },
+        { label: 'エンタルピー ΔH', preview: '\\Delta H = -572\\text{ kJ}', insert: '\\Delta H = -572 \\text{ kJ/mol}', selectStart: 11, selectEnd: 15 },
+        { label: '状態 (固/液/気)', preview: '\\text{(s)}, \\text{(l)}, \\text{(g)}, \\text{(aq)}', insert: '\\text{(aq)}', selectStart: 7, selectEnd: 9 },
+        { label: '単・二重・三重結合', preview: '\\ce{C-C, C=C, C#C}', insert: '\\ce{CH2=CH2}', selectStart: 4, selectEnd: 11 },
+        { label: 'pH定義式', preview: '\\text{pH} = -\\log_{10}[\\ce{H+}]', insert: '\\text{pH} = -\\log_{10}[\\ce{H+}]' },
+        { label: '気体状態方程式', preview: 'PV = nRT', insert: 'PV = \\frac{w}{M}RT' }
+      ]
+    };
+
+    // --- 3. Presets Data ---
+    const PRESETS_DATA = [
+      {
+        category: '数学',
+        title: '二次方程式の解の公式',
+        desc: '分数と平方根を含む最も代表的な公式',
+        latex: 'x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}'
+      },
+      {
+        category: '数学',
+        title: '部分積分の公式と定積分',
+        desc: '微積分・解析の基本公式',
+        latex: '\\int_{a}^{b} f(x)g\'(x)\\,dx = \\left[ f(x)g(x) \\right]_{a}^{b} - \\int_{a}^{b} f\'(x)g(x)\\,dx'
+      },
+      {
+        category: '数学',
+        title: 'ガウス積分と極限',
+        desc: '広義積分と平方根・円周率',
+        latex: '\\int_{-\\infty}^{\\infty} e^{-x^2} \\, dx = \\sqrt{\\pi}'
+      },
+      {
+        category: '数学',
+        title: '空間ベクトルのなす角（内積）',
+        desc: 'ベクトル記号と成分表示',
+        latex: '\\cos\\theta = \\frac{\\vec{a} \\cdot \\vec{b}}{|\\vec{a}||\\vec{b}|} = \\frac{a_1 b_1 + a_2 b_2 + a_3 b_3}{\\sqrt{a_1^2+a_2^2+a_3^2}\\sqrt{b_1^2+b_2^2+b_3^2}}'
+      },
+      {
+        category: '数学',
+        title: '2次正方行列の逆行列',
+        desc: '行列と分数表現の組み合わせ',
+        latex: 'A^{-1} = \\frac{1}{ad - bc} \\begin{pmatrix} d & -b \\\\ -c & a \\end{pmatrix} \\quad (ad - bc \\neq 0)'
+      },
+      {
+        category: '数学',
+        title: 'べき乗和のシグマ公式',
+        desc: '数列の和の公式',
+        latex: '\\sum_{k=1}^{n} k^2 = \\frac{1}{6}n(n+1)(2n+1)'
+      },
+      {
+        category: '化学',
+        title: '酢酸の電離平衡と電離定数 Ka',
+        desc: '可逆反応矢印・モル濃度・電離度 α の関係式',
+        latex: '\\ce{CH3COOH <=> CH3COO- + H+} \\quad , \\quad K_a = \\frac{[\\ce{CH3COO-}][\\ce{H+}]}{[\\ce{CH3COOH}]} = \\frac{c\\alpha^2}{1 - \\alpha}'
+      },
+      {
+        category: '化学',
+        title: '水のイオン積 Kw と pH',
+        desc: '水溶液の性質・酸と塩基',
+        latex: 'K_w = [\\ce{H+}][\\ce{OH-}] = 1.0 \\times 10^{-14} \\text{ (mol/L)}^2 \\quad (25^\\circ\\text{C})'
+      },
+      {
+        category: '化学',
+        title: '過マンガン酸カリウムの半反応式',
+        desc: '硫酸酸性条件での酸化剤の反応式',
+        latex: '\\ce{MnO4^- + 8H+ + 5e- -> Mn^2+ + 4H2O}'
+      },
+      {
+        category: '化学',
+        title: 'ハーバー・ボッシュ法（アンモニア合成）',
+        desc: '触媒・条件付き可逆反応と反応エンタルピー',
+        latex: '\\ce{N2(g) + 3H2(g) <=>[Fe3O4][高温・高圧] 2NH3(g)} \\quad \\Delta H = -92 \\text{ kJ}'
+      },
+      {
+        category: '化学',
+        title: '理想気体の状態方程式と分子量',
+        desc: '気体の計算で頻出の分数変形',
+        latex: 'PV = nRT = \\frac{w}{M}RT \\iff M = \\frac{wRT}{PV} = \\frac{dRT}{P}'
+      },
+      {
+        category: '化学',
+        title: '放射性同位体（炭素14のβ崩壊）',
+        desc: '質量数・原子番号の上下添え字表記',
+        latex: '{}^{14}_{6}\\text{C} \\longrightarrow {}^{14}_{7}\\text{N} + \\ce{e-} + \\bar{\\nu}_e'
+      }
+    ];
+
+    // --- 4. Initialization & MathJax Ready Callback ---
+    window.onMathJaxReady = function() {
+      state.isMathJaxReady = true;
+      renderPaletteButtons();
+      renderFormulaToPreview();
+      renderPresetsList();
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSavedFormulasFromStorage();
+
+      // Attach live input listener with debounce
+      const inputEl = document.getElementById('formula-input');
+      let debounceTimer = null;
+      inputEl.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          pushUndoHistory(inputEl.value);
+          renderFormulaToPreview();
+        }, 120);
+      });
+
+      // Fallback if MathJax finished loading before DOMContentLoaded
+      if (window.MathJax && window.MathJax.tex2svgPromise && !state.isMathJaxReady) {
+        window.onMathJaxReady();
+      }
+    });
+
+    // --- 5. Palette Rendering & Insertion ---
+    function switchPaletteTab(tabKey) {
+      state.currentTab = tabKey;
+      const tabs = ['basic', 'calculus', 'symbols', 'chem'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (t === tabKey) {
+          btn.className = 'tab-btn flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm';
+        } else {
+          btn.className = 'tab-btn flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+        }
+      });
+      renderPaletteButtons();
+    }
+
+    function renderPaletteButtons() {
+      const container = document.getElementById('palette-container');
+      const items = PALETTE_DATA[state.currentTab] || [];
+
+      // Symbols tab uses slightly more compact columns
+      const gridColsClass = state.currentTab === 'symbols'
+        ? 'grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2'
+        : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2';
+
+      container.innerHTML = `<div class="${gridColsClass}" id="palette-grid-inner"></div>`;
+      const gridInner = document.getElementById('palette-grid-inner');
+
+      items.forEach((item) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'palette-btn group flex flex-col items-center justify-between p-2.5 rounded-xl bg-white hover:bg-indigo-50/70 active:bg-indigo-100 dark:bg-slate-900 dark:hover:bg-indigo-950/60 border border-slate-200/90 hover:border-indigo-300 dark:border-slate-800 dark:hover:border-indigo-700 shadow-sm transition min-h-[68px]';
+        
+        const mathSpan = document.createElement('div');
+        mathSpan.className = 'flex-1 flex items-center justify-center text-slate-800 dark:text-slate-100 my-0.5 overflow-hidden';
+        mathSpan.innerHTML = `\\(${item.preview}\\)`;
+
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'text-[11px] font-medium text-slate-500 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 truncate max-w-full mt-1';
+        labelSpan.textContent = item.label;
+
+        btn.appendChild(mathSpan);
+        btn.appendChild(labelSpan);
+
+        btn.addEventListener('click', () => {
+          insertAtCursor(item.insert, item.selectStart, item.selectEnd);
+        });
+
+        gridInner.appendChild(btn);
+      });
+
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        MathJax.typesetPromise([gridInner]).catch(err => console.warn('Palette typeset warning:', err));
+      }
+    }
+
+    // Insert command into textarea at current cursor position and select placeholder
+    function insertAtCursor(textToInsert, selectStartOffset, selectEndOffset) {
+      const textarea = document.getElementById('formula-input');
+      const startPos = textarea.selectionStart || 0;
+      const endPos = textarea.selectionEnd || 0;
+      const currentVal = textarea.value;
+      const selectedText = currentVal.substring(startPos, endPos);
+
+      let finalInsert = textToInsert;
+      let newCursorStart = startPos + textToInsert.length;
+      let newCursorEnd = newCursorStart;
+
+      // If user had highlighted some text and clicked a template with a primary placeholder, wrap it!
+      if (selectedText.length > 0 && typeof selectStartOffset === 'number' && typeof selectEndOffset === 'number') {
+        finalInsert =
+          textToInsert.substring(0, selectStartOffset) +
+          selectedText +
+          textToInsert.substring(selectEndOffset);
+        newCursorStart = startPos + selectStartOffset;
+        newCursorEnd = newCursorStart + selectedText.length;
+      } else if (typeof selectStartOffset === 'number' && typeof selectEndOffset === 'number') {
+        newCursorStart = startPos + selectStartOffset;
+        newCursorEnd = startPos + selectEndOffset;
+      }
+
+      textarea.value = currentVal.substring(0, startPos) + finalInsert + currentVal.substring(endPos);
+      textarea.focus();
+      textarea.setSelectionRange(newCursorStart, newCursorEnd);
+
+      pushUndoHistory(textarea.value);
+      renderFormulaToPreview();
+    }
+
+    function insertSnippet(snippet, offsetFromEnd = 0, selectLen = 0) {
+      const textarea = document.getElementById('formula-input');
+      const startPos = textarea.selectionStart || 0;
+      const endPos = textarea.selectionEnd || 0;
+      const currentVal = textarea.value;
+
+      textarea.value = currentVal.substring(0, startPos) + snippet + currentVal.substring(endPos);
+      const targetPos = startPos + snippet.length + offsetFromEnd - selectLen;
+      textarea.focus();
+      textarea.setSelectionRange(targetPos, targetPos + selectLen);
+
+      pushUndoHistory(textarea.value);
+      renderFormulaToPreview();
+    }
+
+    // Move cursor left/right (Friendly for iPad touch editing)
+    function moveCursor(delta) {
+      const textarea = document.getElementById('formula-input');
+      const pos = Math.max(0, Math.min(textarea.value.length, (textarea.selectionEnd || 0) + delta));
+      textarea.focus();
+      textarea.setSelectionRange(pos, pos);
+    }
+
+    // Jump to the next `{...}` content inside the formula
+    function jumpToNextPlaceholder() {
+      const textarea = document.getElementById('formula-input');
+      const val = textarea.value;
+      const currentPos = textarea.selectionEnd || 0;
+
+      // Search for next '{' after current cursor, or wrap around from beginning
+      let openBraceIdx = val.indexOf('{', currentPos);
+      if (openBraceIdx === -1) {
+        openBraceIdx = val.indexOf('{', 0);
+      }
+
+      if (openBraceIdx !== -1) {
+        const closeBraceIdx = val.indexOf('}', openBraceIdx + 1);
+        textarea.focus();
+        if (closeBraceIdx !== -1) {
+          textarea.setSelectionRange(openBraceIdx + 1, closeBraceIdx);
+        } else {
+          textarea.setSelectionRange(openBraceIdx + 1, openBraceIdx + 1);
+        }
+      } else {
+        textarea.focus();
+      }
+    }
+
+    function backspaceAtCursor() {
+      const textarea = document.getElementById('formula-input');
+      const start = textarea.selectionStart || 0;
+      const end = textarea.selectionEnd || 0;
+      const val = textarea.value;
+
+      if (start !== end) {
+        textarea.value = val.substring(0, start) + val.substring(end);
+        textarea.setSelectionRange(start, start);
+      } else if (start > 0) {
+        textarea.value = val.substring(0, start - 1) + val.substring(start);
+        textarea.setSelectionRange(start - 1, start - 1);
+      }
+      textarea.focus();
+      pushUndoHistory(textarea.value);
+      renderFormulaToPreview();
+    }
+
+    function clearEditor() {
+      const textarea = document.getElementById('formula-input');
+      textarea.value = '';
+      textarea.focus();
+      pushUndoHistory('');
+      renderFormulaToPreview();
+    }
+
+    function pushUndoHistory(val) {
+      if (state.historyUndoStack[state.historyUndoStack.length - 1] !== val) {
+        state.historyUndoStack.push(val);
+        if (state.historyUndoStack.length > 40) {
+          state.historyUndoStack.shift();
+        }
+      }
+    }
+
+    function undoEditor() {
+      if (state.historyUndoStack.length > 1) {
+        state.historyUndoStack.pop();
+        const prev = state.historyUndoStack[state.historyUndoStack.length - 1];
+        const textarea = document.getElementById('formula-input');
+        textarea.value = prev;
+        renderFormulaToPreview();
+      } else {
+        showToast('これ以上戻せません', 'info');
+      }
+    }
+
+    function loadFormula(latexStr) {
+      const textarea = document.getElementById('formula-input');
+      textarea.value = latexStr;
+      pushUndoHistory(latexStr);
+      renderFormulaToPreview();
+      showToast('式を読み込みました', 'success');
+    }
+
+    // --- 6. Core Vector SVG -> High-Resolution Canvas -> PNG Pipeline ---
+    async function renderFormulaToPreview() {
+      if (!state.isMathJaxReady || !window.MathJax || !window.MathJax.tex2svgPromise) return;
+
+      const rawLatex = document.getElementById('formula-input').value.trim();
+      const renderContainer = document.getElementById('math-render-container');
+      const liveImg = document.getElementById('live-png-preview');
+      const modalImg = document.getElementById('modal-png-preview');
+      const errorBox = document.getElementById('render-error-box');
+      const dimBadge = document.getElementById('image-dimensions-badge');
+
+      if (!rawLatex) {
+        liveImg.classList.add('hidden');
+        errorBox.classList.remove('hidden');
+        errorBox.textContent = '上のパレットまたは入力欄から数式・化学式を入力してください';
+        dimBadge.textContent = '0 × 0 px';
+        return;
+      }
+
+      try {
+        MathJax.texReset();
+        const mjxNode = await MathJax.tex2svgPromise(rawLatex, { display: true });
+        renderContainer.innerHTML = '';
+        renderContainer.appendChild(mjxNode);
+
+        const svgEl = mjxNode.querySelector('svg');
+        if (!svgEl) throw new Error('SVG生成エラー');
+
+        // Check if MathJax generated an internal merror node
+        const hasError = svgEl.querySelector('[data-mml-node="merror"]');
+        if (hasError) {
+          liveImg.classList.add('hidden');
+          errorBox.classList.remove('hidden');
+          errorBox.textContent = '数式の構文に未完了の部分があります（カッコ { } の閉じ忘れ等を確認してください）';
+          return;
+        }
+
+        errorBox.classList.add('hidden');
+        liveImg.classList.remove('hidden');
+
+        // Measure natural bounding box of the SVG in pixels
+        // Note: MathJax sets width/height in "ex" units. Measuring via getBoundingClientRect or viewBox gives exact ratio.
+        const bbox = svgEl.getBoundingClientRect();
+        const viewBoxAttr = svgEl.getAttribute('viewBox');
+        let baseWidthPx = bbox.width;
+        let baseHeightPx = bbox.height;
+
+        if ((!baseWidthPx || !baseHeightPx) && viewBoxAttr) {
+          const parts = viewBoxAttr.split(/\s+/).map(Number);
+          if (parts.length === 4) {
+            // Convert MathJax internal units (~1000 units per em) to crisp base pixels
+            baseWidthPx = Math.max(20, (parts[2] / 1000) * 26);
+            baseHeightPx = Math.max(20, (parts[3] / 1000) * 26);
+          }
+        }
+
+        // Scale up base formula size so default 1x is already very legible (approx 28px font equivalent)
+        const baseFontMultiplier = 1.65;
+        const naturalFormulaWidth = Math.ceil(baseWidthPx * baseFontMultiplier);
+        const naturalFormulaHeight = Math.ceil(baseHeightPx * baseFontMultiplier);
+
+        // Clone SVG and prepare standalone attributes for serialization
+        const clonedSvg = svgEl.cloneNode(true);
+        clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+
+        // Apply user-selected text color directly onto SVG root and replace currentColor
+        clonedSvg.style.color = state.textColor;
+        clonedSvg.setAttribute('color', state.textColor);
+
+        // Set explicit pixel dimensions multiplied by user resolution scale so Safari/WebKit rasterizes SVG vectors at full target resolution!
+        const targetSvgPixelWidth = naturalFormulaWidth * state.scale;
+        const targetSvgPixelHeight = naturalFormulaHeight * state.scale;
+        clonedSvg.setAttribute('width', `${targetSvgPixelWidth}px`);
+        clonedSvg.setAttribute('height', `${targetSvgPixelHeight}px`);
+
+        // Serialize SVG and replace currentColor with explicit hex for maximum compatibility
+        let svgString = new XMLSerializer().serializeToString(clonedSvg);
+        svgString = svgString.replace(/currentColor/g, state.textColor);
+        state.currentSvgString = svgString;
+
+        // Encode SVG as data URL
+        const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+
+        // Draw onto high-res HTML5 Canvas
+        const paddingScaled = state.padding * state.scale;
+        const canvasWidth = targetSvgPixelWidth + paddingScaled * 2;
+        const canvasHeight = targetSvgPixelHeight + paddingScaled * 2;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        const ctx = canvas.getContext('2d');
+
+        // Fill background if not transparent
+        if (state.bgMode !== 'transparent') {
+          ctx.fillStyle = getActiveBackgroundColor();
+          ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        } else {
+          ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        }
+
+        // Load SVG image and draw onto canvas
+        await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            ctx.drawImage(img, paddingScaled, paddingScaled, targetSvgPixelWidth, targetSvgPixelHeight);
+            resolve();
+          };
+          img.onerror = (e) => reject(e);
+          img.src = svgDataUrl;
+        });
+
+        // Convert Canvas to PNG Data URL & Blob
+        const pngDataUrl = canvas.toDataURL('image/png');
+        state.currentPngDataUrl = pngDataUrl;
+
+        canvas.toBlob((blob) => {
+          state.currentPngBlob = blob;
+        }, 'image/png');
+
+        // Update Live Preview & iPad Modal Preview
+        liveImg.src = pngDataUrl;
+        if (modalImg) modalImg.src = pngDataUrl;
+
+        // Update output pixel dimensions badge
+        dimBadge.textContent = `${canvasWidth} × ${canvasHeight} px (${state.scale}x)`;
+
+      } catch (err) {
+        console.error('Formula render error:', err);
+        liveImg.classList.add('hidden');
+        errorBox.classList.remove('hidden');
+        errorBox.textContent = '数式の変換中にエラーが発生しました。構文を確認してください。';
+      }
+    }
+
+    function getActiveBackgroundColor() {
+      if (state.bgMode === 'white') return '#ffffff';
+      if (state.bgMode === 'black') return '#0f172a';
+      if (state.bgMode === 'custom') return state.customBgColor;
+      return 'transparent';
+    }
+
+    // --- 7. Style Customizer Controls ---
+    function setBgMode(mode, customHex) {
+      state.bgMode = mode;
+      if (customHex) state.customBgColor = customHex;
+
+      const modes = ['transparent', 'white', 'black', 'custom'];
+      modes.forEach(m => {
+        const el = document.getElementById(`bg-btn-${m}`);
+        if (!el) return;
+        if (m === mode) {
+          el.className = 'bg-mode-btn py-2 px-2 rounded-xl border-2 border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/40 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition';
+        } else {
+          el.className = 'bg-mode-btn py-2 px-2 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition';
+        }
+      });
+
+      // Smart contrast assistance: if user switches to black background while text is black, auto-switch text to white
+      if (mode === 'black' && state.textColorName === 'black') {
+        setTextColor('#ffffff', 'white');
+        return;
+      } else if (mode === 'white' && state.textColorName === 'white') {
+        setTextColor('#0f172a', 'black');
+        return;
+      }
+
+      renderFormulaToPreview();
+    }
+
+    function setTextColor(hexColor, nameKey) {
+      state.textColor = hexColor;
+      state.textColorName = nameKey;
+
+      const keys = ['black', 'white', 'blue', 'red', 'green', 'custom'];
+      keys.forEach(k => {
+        const el = document.getElementById(`text-btn-${k}`);
+        if (!el) return;
+        if (k === nameKey) {
+          el.className = 'text-color-btn py-2 px-2 rounded-xl border-2 border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/40 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer transition';
+        } else {
+          el.className = 'text-color-btn py-2 px-2 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer transition';
+        }
+      });
+
+      renderFormulaToPreview();
+    }
+
+    function setResolutionScale(scaleVal) {
+      state.scale = scaleVal;
+      const labels = { 2: '2x (標準)', 3: '3x (高画質)', 4: '4x (超高画質)' };
+      document.getElementById('scale-label').textContent = labels[scaleVal] || `${scaleVal}x`;
+
+      [2, 3, 4].forEach(s => {
+        const btn = document.getElementById(`scale-btn-${s}`);
+        if (s === scaleVal) {
+          btn.className = 'scale-btn py-2 rounded-lg border-2 border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-300 text-xs font-bold transition';
+        } else {
+          btn.className = 'scale-btn py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold transition';
+        }
+      });
+
+      renderFormulaToPreview();
+    }
+
+    function updatePadding(val) {
+      state.padding = parseInt(val, 10);
+      document.getElementById('padding-value-label').textContent = `${state.padding} px`;
+      renderFormulaToPreview();
+    }
+
+    function resetStyleSettings() {
+      document.getElementById('padding-slider').value = 24;
+      updatePadding(24);
+      setResolutionScale(3);
+      setBgMode('transparent');
+      setTextColor('#0f172a', 'black');
+      showToast('スタイル設定を初期値に戻しました', 'info');
+    }
+
+    // --- 8. Image Export & Clipboard Functions (iPad & PC) ---
+    function downloadPngImage() {
+      if (!state.currentPngDataUrl) {
+        showToast('まず数式を入力してください', 'error');
+        return;
+      }
+      const link = document.createElement('a');
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+      link.download = `formula-${timestamp}.png`;
+      link.href = state.currentPngDataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('高解像度PNG画像をダウンロードしました！', 'success');
+    }
+
+    function downloadSvgImage() {
+      if (!state.currentSvgString) {
+        showToast('まず数式を入力してください', 'error');
+        return;
+      }
+      const blob = new Blob([state.currentSvgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+      link.download = `formula-${timestamp}.svg`;
+      link.href = url;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast('ベクターSVGファイルを保存しました！', 'success');
+    }
+
+    async function copyPngToClipboard() {
+      if (!state.currentPngDataUrl) {
+        showToast('コピーする数式がありません', 'error');
+        return;
+      }
+
+      try {
+        if (navigator.clipboard && window.ClipboardItem) {
+          // Safari & Chrome compatible ClipboardItem creation
+          const blobPromise = fetch(state.currentPngDataUrl).then(r => r.blob());
+          const item = new ClipboardItem({ 'image/png': blobPromise });
+          await navigator.clipboard.write([item]);
+          showToast('PNG画像をクリップボードにコピーしました！ノートアプリ等にペーストできます', 'success');
+        } else {
+          throw new Error('ClipboardItem unsupported');
+        }
+      } catch (err) {
+        console.warn('Direct clipboard write fallback:', err);
+        // Open iPad modal so the user can effortlessly long-press -> Copy
+        openModal('ipad-preview-modal');
+        showToast('ブラウザ制限のため長押し画面を開きました。画像を長押しして「コピー」を選択してください', 'info');
+      }
+    }
+
+    function copyLatexCode() {
+      const val = document.getElementById('formula-input').value.trim();
+      if (!val) return;
+
+      const tempInput = document.createElement('textarea');
+      tempInput.value = val;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+      showToast('LaTeXコードをクリップボードにコピーしました', 'success');
+    }
+
+    // --- 9. Presets & Saved Formulas Management (localStorage) ---
+    function renderPresetsList() {
+      const container = document.getElementById('preset-list-container');
+      container.innerHTML = '';
+
+      PRESETS_DATA.forEach((preset) => {
+        const card = document.createElement('div');
+        card.className = 'p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 hover:border-indigo-400 dark:hover:border-indigo-500 transition flex flex-col justify-between gap-2.5 cursor-pointer group';
+        card.onclick = () => {
+          loadFormula(preset.latex);
+          closeModal('preset-modal');
+        };
+
+        const badgeColor = preset.category === '化学'
+          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+          : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300';
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-md text-[11px] font-bold ${badgeColor}">${preset.category}</span>
+                <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition">${preset.title}</h4>
+              </div>
+              <span class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold opacity-0 group-hover:opacity-100 transition">読み込む →</span>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400">${preset.desc}</p>
+          </div>
+          <div class="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 overflow-x-auto text-center text-sm">
+            \\(${preset.latex}\\)
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        MathJax.typesetPromise([container]).catch(() => {});
+      }
+    }
+
+    function loadSavedFormulasFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_SAVED);
+        if (raw) {
+          state.savedFormulas = JSON.parse(raw);
+        } else {
+          // Seed initial helpful favorites
+          state.savedFormulas = [
+            {
+              id: 'seed-1',
+              title: '二次方程式の解の公式',
+              latex: 'x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}',
+              createdAt: '初期サンプル'
+            },
+            {
+              id: 'seed-2',
+              title: '酢酸の電離定数 Ka',
+              latex: 'K_a = \\frac{[\\ce{CH3COO-}][\\ce{H+}]}{[\\ce{CH3COOH}]} = \\frac{c\\alpha^2}{1 - \\alpha}',
+              createdAt: '初期サンプル'
+            }
+          ];
+          saveFormulasToStorage();
+        }
+      } catch (e) {
+        state.savedFormulas = [];
+      }
+      updateSavedCountBadge();
+      renderSavedFormulasList();
+    }
+
+    function saveFormulasToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_SAVED, JSON.stringify(state.savedFormulas));
+      } catch (e) {
+        console.warn('localStorage error:', e);
+      }
+      updateSavedCountBadge();
+      renderSavedFormulasList();
+    }
+
+    function updateSavedCountBadge() {
+      const badge = document.getElementById('saved-count-badge');
+      if (badge) badge.textContent = state.savedFormulas.length;
+    }
+
+    function saveCurrentFormula() {
+      const latex = document.getElementById('formula-input').value.trim();
+      if (!latex) {
+        showToast('保存する式が空です', 'error');
+        return;
+      }
+      const now = new Date();
+      const dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      state.savedFormulas.unshift({
+        id: 'item-' + Date.now(),
+        title: `保存した式 (${dateStr})`,
+        latex: latex,
+        createdAt: dateStr
+      });
+      saveFormulasToStorage();
+      showToast('現在の式を保存リストに追加しました！', 'success');
+    }
+
+    function saveCurrentFormulaWithCustomTitle() {
+      const latex = document.getElementById('formula-input').value.trim();
+      const titleInput = document.getElementById('save-title-input');
+      if (!latex) {
+        showToast('エディタに式が入力されていません', 'error');
+        return;
+      }
+      const now = new Date();
+      const dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const customTitle = titleInput.value.trim() || `保存した式 (${dateStr})`;
+
+      state.savedFormulas.unshift({
+        id: 'item-' + Date.now(),
+        title: customTitle,
+        latex: latex,
+        createdAt: dateStr
+      });
+      titleInput.value = '';
+      saveFormulasToStorage();
+      showToast(`「${customTitle}」を保存しました`, 'success');
+    }
+
+    function deleteSavedFormula(id) {
+      state.savedFormulas = state.savedFormulas.filter(item => item.id !== id);
+      saveFormulasToStorage();
+      showToast('保存リストから削除しました', 'info');
+    }
+
+    function renderSavedFormulasList() {
+      const container = document.getElementById('saved-list-container');
+      if (!container) return;
+
+      if (state.savedFormulas.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-10 text-slate-400 text-sm">
+            まだ保存された式がありません。エディタ右下の「式を保存」からいつでも登録できます。
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '';
+      state.savedFormulas.forEach((item) => {
+        const row = document.createElement('div');
+        row.className = 'p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3';
+        
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'flex-1 overflow-x-auto';
+        infoDiv.innerHTML = `
+          <div class="flex items-center gap-2 mb-1">
+            <span class="font-bold text-sm text-slate-800 dark:text-slate-100">${escapeHtml(item.title)}</span>
+            <span class="text-[11px] text-slate-400">${escapeHtml(item.createdAt || '')}</span>
+          </div>
+          <div class="py-1 text-slate-700 dark:text-slate-200 text-sm">\\(${item.latex}\\)</div>
+          <div class="text-[11px] font-mono text-slate-400 truncate max-w-md">${escapeHtml(item.latex)}</div>
+        `;
+
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'flex items-center gap-2 shrink-0';
+
+        const loadBtn = document.createElement('button');
+        loadBtn.className = 'px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition';
+        loadBtn.innerHTML = '<i class="fa-solid fa-pen-to-square mr-1"></i>呼び出す';
+        loadBtn.onclick = () => {
+          loadFormula(item.latex);
+          closeModal('history-modal');
+        };
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'p-2 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 text-xs transition';
+        delBtn.innerHTML = '<i class="fa-regular fa-trash-can"></i>';
+        delBtn.onclick = () => deleteSavedFormula(item.id);
+
+        actionsDiv.appendChild(loadBtn);
+        actionsDiv.appendChild(delBtn);
+
+        row.appendChild(infoDiv);
+        row.appendChild(actionsDiv);
+        container.appendChild(row);
+      });
+
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        MathJax.typesetPromise([container]).catch(() => {});
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // --- 10. Modal, Theme & Toast Utilities ---
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.remove('hidden');
+        if (id === 'history-modal') renderSavedFormulasList();
+        if (id === 'preset-modal') renderPresetsList();
+      }
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    }
+
+    // Close modal when clicking backdrop
+    window.addEventListener('click', (e) => {
+      ['ipad-preview-modal', 'preset-modal', 'history-modal', 'guide-modal'].forEach(id => {
+        const modal = document.getElementById(id);
+        if (e.target === modal) closeModal(id);
+      });
+    });
+
+    function toggleTheme() {
+      const htmlEl = document.documentElement;
+      const iconEl = document.getElementById('theme-icon');
+      if (htmlEl.classList.contains('dark')) {
+        htmlEl.classList.remove('dark');
+        iconEl.className = 'fa-solid fa-moon text-base';
+      } else {
+        htmlEl.classList.add('dark');
+        iconEl.className = 'fa-solid fa-sun text-amber-400 text-base';
+      }
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const colorClasses = {
+        success: 'bg-slate-900 dark:bg-emerald-600 text-white border-emerald-500',
+        error: 'bg-rose-600 text-white border-rose-500',
+        info: 'bg-slate-800 text-white border-slate-700'
+      };
+      const iconClasses = {
+        success: 'fa-solid fa-circle-check text-emerald-400 dark:text-white',
+        error: 'fa-solid fa-circle-exclamation text-white',
+        info: 'fa-solid fa-circle-info text-indigo-400'
+      };
+
+      toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-xs sm:text-sm font-medium transition-all duration-300 ${colorClasses[type] || colorClasses.info}`;
+      toast.innerHTML = `
+        <i class="${iconClasses[type] || iconClasses.info}"></i>
+        <span>${escapeHtml(message)}</span>
+      `;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(8px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 2800);
+    }
+  </script>
+</body>
+</html>
