@@ -1,0 +1,3832 @@
+<!DOCTYPE html>
+<html lang="ja" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>電子式・構造式メーカー Pro | ChemStruct & Lewis Studio v2</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Menlo', 'Consolas', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts & Font Awesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    /* Checkerboard pattern for transparent preview */
+    .bg-checkerboard {
+      background-color: #f8fafc;
+      background-image:
+        linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
+        linear-gradient(-45deg, #e2e8f0 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #e2e8f0 75%),
+        linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+      background-size: 18px 18px;
+      background-position: 0 0, 0 9px, 9px -9px, -9px 0px;
+    }
+    .dark .bg-checkerboard {
+      background-color: #0f172a;
+      background-image:
+        linear-gradient(45deg, #1e293b 25%, transparent 25%),
+        linear-gradient(-45deg, #1e293b 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #1e293b 75%),
+        linear-gradient(-45deg, transparent 75%, #1e293b 75%);
+    }
+
+    /* Interactive SVG Canvas Styling */
+    #editor-svg {
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    button, .touch-btn {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.4);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.7);
+    }
+
+    /* Compass Pad Radial Layout */
+    .compass-ring {
+      position: relative;
+      width: 184px;
+      height: 184px;
+      margin: 0 auto;
+    }
+    .compass-btn {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      margin-left: -16px;
+      margin-top: -16px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      transition: all 0.15s ease;
+    }
+    .compass-btn:active {
+      transform: scale(0.92);
+    }
+
+    /* Hide scrollbar for horizontal template strip */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Sprout handle hover animation on SVG canvas */
+    .sprout-handle {
+      transition: transform 0.12s ease, opacity 0.12s ease;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+    .sprout-handle:hover {
+      transform: scale(1.22);
+    }
+  </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+  <!-- ================= HEADER ================= -->
+  <header class="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-3 sm:px-6 py-2">
+    <div class="max-w-[1720px] mx-auto flex flex-wrap items-center justify-between gap-2">
+      <!-- App Brand -->
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 text-base font-bold">
+          <i class="fa-solid fa-atom"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-300 bg-clip-text text-transparent">
+              電子式・構造式メーカー Pro
+            </h1>
+            <span class="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+              価標中心アンカー描画・直感＋ガイド搭載
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">
+            ベンゼン・エチレン・グルコース等をワンタップ呼出＆周囲の「＋」をタップして直感編集
+          </p>
+        </div>
+      </div>
+
+      <!-- Header Quick Buttons -->
+      <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+        <button onclick="openModal('preset-modal')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/70 dark:hover:bg-amber-900/70 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-bold shadow-sm transition">
+          <i class="fa-solid fa-book-atlas"></i>
+          <span>全テンプレート一覧</span>
+        </button>
+
+        <button onclick="openModal('saved-modal')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-bold shadow-sm transition">
+          <i class="fa-solid fa-bookmark text-emerald-500"></i>
+          <span>保存一覧</span>
+          <span id="saved-count-badge" class="px-1.5 py-0.2 bg-emerald-600 text-white rounded-full text-[10px]">0</span>
+        </button>
+
+        <button onclick="openModal('guide-modal')" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition" title="使い方ガイド">
+          <i class="fa-regular fa-circle-question text-sm"></i>
+        </button>
+
+        <button onclick="toggleTheme()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition" title="ダークモード切替">
+          <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= QUICK TEMPLATE BAR (Always Accessible) ================= -->
+  <section class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 sm:px-6 py-2 shadow-xs">
+    <div class="max-w-[1720px] mx-auto flex flex-col gap-1.5">
+      <div class="flex items-center justify-between gap-2 flex-wrap">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="text-xs font-extrabold text-slate-700 dark:text-slate-200 flex items-center gap-1 mr-1">
+            <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
+            <span>頻出テンプレート（タップで呼出→すぐ編集）：</span>
+          </span>
+          <!-- Category Filter Pills for Quick Strip -->
+          <button onclick="setQuickStripCategory('popular')" id="qcat-popular" class="qcat-btn px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-600 text-white transition">
+            ★ 超頻出ベスト
+          </button>
+          <button onclick="setQuickStripCategory('aliphatic')" id="qcat-aliphatic" class="qcat-btn px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition">
+            鎖式有機 (エチレン・酢酸等)
+          </button>
+          <button onclick="setQuickStripCategory('aromatic')" id="qcat-aromatic" class="qcat-btn px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition">
+            芳香族 (ベンゼン・サリチル酸等)
+          </button>
+          <button onclick="setQuickStripCategory('sugar')" id="qcat-sugar" class="qcat-btn px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition">
+            糖類・環 (α/β-グルコース等)
+          </button>
+          <button onclick="setQuickStripCategory('lewis')" id="qcat-lewis" class="qcat-btn px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition">
+            電子式・錯イオン
+          </button>
+        </div>
+      </div>
+
+      <!-- Horizontal Scrollable Chip Strip -->
+      <div id="quick-template-strip" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+        <!-- Populated dynamically by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= MAIN WORKSPACE ================= -->
+  <main class="flex-1 max-w-[1720px] w-full mx-auto p-2.5 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+
+    <!-- LEFT COLUMN: Interactive Canvas + Toolbars + Element/Stamp Palette (7 Cols) -->
+    <section class="lg:col-span-7 flex flex-col gap-3">
+
+      <!-- 1. Top Mode & Smart Sprout Control Bar -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/90 dark:border-slate-800 p-2.5 flex flex-wrap items-center justify-between gap-2">
+        <!-- Tool Modes -->
+        <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex-wrap">
+          <button onclick="setToolMode('select')" id="mode-btn-select" class="mode-btn px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm">
+            <i class="fa-solid fa-hand-pointer"></i>
+            <span>直感編集 (選択＋周囲の＋で追加)</span>
+          </button>
+          <button onclick="setToolMode('bond')" id="mode-btn-bond" class="mode-btn px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition text-slate-600 dark:text-slate-300 hover:text-slate-900">
+            <i class="fa-solid fa-link"></i>
+            <span>2原子間を結ぶ</span>
+          </button>
+          <button onclick="setToolMode('atom')" id="mode-btn-atom" class="mode-btn px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition text-slate-600 dark:text-slate-300 hover:text-slate-900">
+            <i class="fa-solid fa-circle-plus"></i>
+            <span>空白に原子追加</span>
+          </button>
+          <button onclick="setToolMode('eraser')" id="mode-btn-eraser" class="mode-btn px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition text-slate-600 dark:text-slate-300 hover:text-rose-600">
+            <i class="fa-solid fa-eraser"></i>
+            <span>消しゴム</span>
+          </button>
+        </div>
+
+        <!-- Growth Mode Toggle (Branching vs Chain) + Undo/Redo -->
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <button onclick="toggleSproutBehavior()" id="sprout-behavior-btn" class="px-2.5 py-1.5 rounded-xl border-2 border-emerald-500/80 bg-emerald-50/70 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-200 text-xs font-bold flex items-center gap-1.5 transition shadow-xs" title="キャンバス上の「＋」をタップした時に、親原子を選択したままにするか、新しい原子へ移動するかを切り替えます">
+            <i class="fa-solid fa-code-branch text-emerald-600"></i>
+            <span id="sprout-behavior-label">＋動作: 親原子を維持 (H追加に最適)</span>
+          </button>
+
+          <button onclick="toggleSproutGuides()" id="sprout-guide-toggle-btn" class="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold transition" title="選択した原子の周りに出る「＋」ガイドの表示切替">
+            <span>＋ガイド: ON</span>
+          </button>
+
+          <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
+
+          <button onclick="undoAction()" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs transition" title="元に戻す (Ctrl+Z)">
+            <i class="fa-solid fa-rotate-left"></i>
+          </button>
+          <button onclick="redoAction()" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs transition" title="やり直す (Ctrl+Y)">
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+          <button onclick="deleteSelected()" class="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 text-xs font-bold transition" title="選択中の原子または結合を削除">
+            <i class="fa-regular fa-trash-can"></i>
+          </button>
+          <button onclick="clearCanvas()" class="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 text-xs font-bold transition">
+            全消去
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Interactive SVG Editor Canvas -->
+      <div class="relative bg-white dark:bg-slate-900 rounded-2xl shadow-sm border-2 border-slate-200/90 dark:border-slate-800 overflow-hidden">
+        <!-- Top-Left Contextual Floating Bar -->
+        <div class="absolute top-2.5 left-2.5 z-10 flex flex-wrap items-center gap-1.5 pointer-events-none">
+          <div id="canvas-hint-badge" class="px-3 py-1.5 rounded-xl bg-slate-900/80 dark:bg-slate-800/90 text-white text-[11px] sm:text-xs font-medium backdrop-blur-sm shadow-sm flex items-center gap-2">
+            <i class="fa-solid fa-lightbulb text-amber-400"></i>
+            <span id="canvas-hint-text">原子をタップ → 周囲の「＋」で結合追加 / 下の元素ボタンで即置換 / 結合線をタップで単・二重・三重切替</span>
+          </div>
+        </div>
+
+        <!-- Floating Context Action Pill (Appears when Atom or Bond is selected) -->
+        <div id="floating-selection-bar" class="absolute bottom-3 left-3 z-10 flex flex-wrap items-center gap-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-md">
+          <button onclick="autoFillHydrogensOnSelected()" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold flex items-center gap-1 transition" title="選択中の原子の空き方向にHを自動追加">
+            <i class="fa-solid fa-plus-circle"></i>
+            <span>空きにHを自動付加</span>
+          </button>
+          <button onclick="autoCompleteOctetElectrons()" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-[11px] font-bold flex items-center gap-1 transition" title="結合数に応じて非共有電子対(••)を自動で埋めます">
+            <i class="fa-solid fa-ellipsis"></i>
+            <span>非共有電子対(••)自動補完</span>
+          </button>
+          <button onclick="flipSelectedGroupOrientation()" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-[11px] font-bold transition" title="OH ⇔ HO や CH3 ⇔ H3C の文字の向きを反転">
+            <i class="fa-solid fa-right-left mr-1"></i>文字向き反転
+          </button>
+          <button onclick="straightenAllBonds()" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[11px] font-bold transition" title="微妙に傾いた水平・垂直の価標をピシッと美しく整形します">
+            <i class="fa-solid fa-ruler-combined mr-1"></i>価標の歪み補正
+          </button>
+        </div>
+
+        <!-- Floating Zoom & Grid Controls -->
+        <div class="absolute bottom-3 right-3 z-10 flex items-center gap-1 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+          <button onclick="toggleMultiSelectMode()" id="multi-select-btn" class="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-bold transition" title="複数選択モード">
+            複数選択
+          </button>
+          <button onclick="zoomCanvas(0.85)" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-xs font-bold" title="縮小">
+            <i class="fa-solid fa-minus"></i>
+          </button>
+          <button onclick="centerAndFitMolecule()" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-[11px] font-bold" title="分子を中央にフィット">
+            中央整列
+          </button>
+          <button onclick="zoomCanvas(1.15)" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-xs font-bold" title="拡大">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+        </div>
+
+        <!-- Main Interactive SVG -->
+        <div class="w-full h-[390px] sm:h-[450px] bg-slate-50/50 dark:bg-slate-950/60">
+          <svg id="editor-svg" class="w-full h-full block" viewBox="0 0 800 500">
+            <defs>
+              <!-- Subtle Dot Grid Pattern -->
+              <pattern id="editor-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                <circle cx="10" cy="10" r="1" class="fill-slate-300/80 dark:fill-slate-800" />
+              </pattern>
+            </defs>
+            <!-- Grid Background Rect -->
+            <rect id="canvas-bg-rect" x="-3000" y="-3000" width="7000" height="7000" fill="url(#editor-grid)" />
+            <!-- Main Viewport Group -->
+            <g id="viewport-group">
+              <g id="brackets-layer"></g>
+              <g id="decorations-layer"></g>
+              <g id="bonds-layer"></g>
+              <g id="atoms-layer"></g>
+              <g id="interaction-layer"></g>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <!-- 3. Instant Element, Functional Group, Bond Type & Ring Stamp Palette -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/90 dark:border-slate-800 p-3.5 flex flex-col gap-3">
+
+        <!-- Row A: Active Element / Functional Group Selector -->
+        <div>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <span class="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+              <i class="fa-solid fa-bolt text-emerald-500"></i>
+              <span>元素・官能基ワンタップパレット（選択中の原子を即変更 / 「＋」追加時の元素を指定）</span>
+            </span>
+            <!-- Custom Label Input -->
+            <div class="flex items-center gap-1.5">
+              <input
+                type="text"
+                id="custom-atom-input"
+                placeholder="自由入力 (例: C2H5, R, X, Fe)"
+                class="w-40 sm:w-48 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono outline-none focus:border-emerald-500"
+                onkeydown="if(event.key==='Enter') applyCustomAtomLabel()"
+              />
+              <button onclick="applyCustomAtomLabel()" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition">
+                適用
+              </button>
+            </div>
+          </div>
+
+          <!-- Element Buttons Grid -->
+          <div class="flex flex-wrap gap-1.5" id="element-palette-container">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Row B: Active Bond Type & Ring Stamps -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2.5 border-t border-slate-100 dark:border-slate-800">
+          <!-- Bond Type Selector -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-xs font-bold text-slate-600 dark:text-slate-300">
+                価標・結合の種類（既存の結合をタップでも切替可）
+              </span>
+              <button onclick="toggleBondLengthPreset()" id="bond-len-btn" class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-slate-700">
+                結合長: 自動最適
+              </button>
+            </div>
+            <div class="grid grid-cols-4 gap-1.5" id="bond-palette-container">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- Ring & Structure Stamps + Ion Bracket Generator -->
+          <div>
+            <span class="text-xs font-bold text-slate-600 dark:text-slate-300 block mb-1.5">
+              環スタンプ追加 & イオン角括弧 <code class="font-mono text-emerald-600 dark:text-emerald-400">[ 　 ]^n±</code>
+            </span>
+            <div class="grid grid-cols-4 gap-1.5">
+              <button onclick="stampStructure('benzene_full')" class="px-1.5 py-1.5 rounded-xl bg-emerald-50/70 hover:bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-xs font-bold text-emerald-800 dark:text-emerald-200 transition flex flex-col items-center">
+                <span>⬡ C₆H₆</span>
+                <span class="text-[10px] opacity-75">全原子ベンゼン</span>
+              </button>
+              <button onclick="stampStructure('benzene_kekule')" class="px-1.5 py-1.5 rounded-xl bg-slate-100 hover:bg-emerald-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 transition flex flex-col items-center">
+                <span>⬡ ベンゼン</span>
+                <span class="text-[10px] text-slate-400">骨格ケクレ</span>
+              </button>
+              <button onclick="stampStructure('pyranose_ring')" class="px-1.5 py-1.5 rounded-xl bg-amber-50/70 hover:bg-amber-100 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-xs font-bold text-amber-800 dark:text-amber-200 transition flex flex-col items-center">
+                <span>⬡ 糖六員環</span>
+                <span class="text-[10px] opacity-75">ピラノース環</span>
+              </button>
+              <button onclick="stampStructure('cyclohexane')" class="px-1.5 py-1.5 rounded-xl bg-slate-100 hover:bg-emerald-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 transition flex flex-col items-center">
+                <span>⬡ 六員環</span>
+                <span class="text-[10px] text-slate-400">シクロヘキサン</span>
+              </button>
+              <button onclick="addOrUpdateIonBracket('+')" class="px-1.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/70 border border-indigo-200 dark:border-indigo-800 text-xs font-bold text-indigo-700 dark:text-indigo-300 transition flex flex-col items-center">
+                <span>[ 　 ]⁺</span>
+                <span class="text-[10px] opacity-75">陽イオン括弧</span>
+              </button>
+              <button onclick="addOrUpdateIonBracket('-')" class="px-1.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/70 border border-rose-200 dark:border-rose-800 text-xs font-bold text-rose-700 dark:text-rose-300 transition flex flex-col items-center">
+                <span>[ 　 ]⁻</span>
+                <span class="text-[10px] opacity-75">陰イオン括弧</span>
+              </button>
+              <button onclick="addOrUpdateIonBracket('2+')" class="px-1.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/70 border border-indigo-200 dark:border-indigo-800 text-xs font-bold text-indigo-700 dark:text-indigo-300 transition flex flex-col items-center">
+                <span>[ 　 ]²⁺</span>
+                <span class="text-[10px] opacity-75">2価錯イオン</span>
+              </button>
+              <button onclick="clearIonBrackets()" class="px-1.5 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-rose-600 border border-slate-200 dark:border-slate-700 transition flex flex-col items-center">
+                <span>括弧解除</span>
+                <span class="text-[10px] opacity-75">[ ] を消す</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- RIGHT COLUMN: Inspector (Lewis Dots + 12-Dir Compass) & Live PNG Export (5 Cols) -->
+    <section class="lg:col-span-5 flex flex-col gap-3.5">
+
+      <!-- 1. Context Inspector Card (Lewis Electron Controller & 12-Direction Builder) -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/90 dark:border-slate-800 p-4 flex flex-col gap-3.5">
+        
+        <!-- Inspector Tabs -->
+        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+          <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+            <button onclick="switchInspectorTab('lewis')" id="insp-tab-lewis" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm flex items-center gap-1.5">
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+              <span>電子式 (●/○) 設定</span>
+            </button>
+            <button onclick="switchInspectorTab('compass')" id="insp-tab-compass" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 flex items-center gap-1.5">
+              <i class="fa-regular fa-compass"></i>
+              <span>12方向結合パッド</span>
+            </button>
+            <button onclick="switchInspectorTab('prop')" id="insp-tab-prop" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 flex items-center gap-1.5">
+              <i class="fa-solid fa-palette"></i>
+              <span>電荷・色・骨格</span>
+            </button>
+          </div>
+
+          <span id="selected-status-badge" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+            選択中: なし
+          </span>
+        </div>
+
+        <!-- TAB 1: LEWIS ELECTRON DOT CONTROLLER -->
+        <div id="inspector-panel-lewis" class="flex flex-col gap-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="text-xs font-bold text-slate-600 dark:text-slate-300">
+              ① 配置する電子パターンを選択して、上下左右の枠をタップ：
+            </span>
+          </div>
+
+          <!-- Electron Brush Selector -->
+          <div class="grid grid-cols-4 sm:grid-cols-8 gap-1.5" id="electron-brush-container">
+            <!-- Populated by JS -->
+          </div>
+
+          <!-- 4-Way Cross Controller + Quick Valence Presets -->
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center bg-slate-50/80 dark:bg-slate-950/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800">
+            <!-- 4-Direction Cross Visual Widget (7 cols) -->
+            <div class="sm:col-span-7 flex flex-col items-center justify-center gap-1.5">
+              <!-- TOP button -->
+              <button onclick="applyElectronToSide('top')" id="lewis-side-top" class="w-28 h-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-emerald-500 flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm transition">
+                <span class="text-[10px] text-slate-400">上:</span>
+                <span id="lewis-label-top" class="font-mono text-sm">なし</span>
+              </button>
+
+              <!-- LEFT - CENTER ATOM - RIGHT -->
+              <div class="flex items-center gap-1.5">
+                <button onclick="applyElectronToSide('left')" id="lewis-side-left" class="w-24 h-12 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-emerald-500 flex flex-col items-center justify-center text-xs font-bold shadow-sm transition">
+                  <span class="text-[10px] text-slate-400">左</span>
+                  <span id="lewis-label-left" class="font-mono text-sm">なし</span>
+                </button>
+
+                <div id="lewis-center-atom-box" class="w-14 h-14 rounded-2xl bg-emerald-600 text-white font-bold text-lg flex items-center justify-center shadow-md">
+                  C
+                </div>
+
+                <button onclick="applyElectronToSide('right')" id="lewis-side-right" class="w-24 h-12 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-emerald-500 flex flex-col items-center justify-center text-xs font-bold shadow-sm transition">
+                  <span class="text-[10px] text-slate-400">右</span>
+                  <span id="lewis-label-right" class="font-mono text-sm">なし</span>
+                </button>
+              </div>
+
+              <!-- BOTTOM button -->
+              <button onclick="applyElectronToSide('bottom')" id="lewis-side-bottom" class="w-28 h-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-emerald-500 flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm transition">
+                <span class="text-[10px] text-slate-400">下:</span>
+                <span id="lewis-label-bottom" class="font-mono text-sm">なし</span>
+              </button>
+            </div>
+
+            <!-- Quick One-Tap Valence Presets (5 cols) -->
+            <div class="sm:col-span-5 flex flex-col gap-1.5">
+              <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400">一括電子セット (ワンタップ)</span>
+              <div class="grid grid-cols-2 gap-1.5">
+                <button onclick="applyValencePreset('octet')" class="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-[11px] font-bold transition">
+                  8個 (4方向 ••)
+                </button>
+                <button onclick="applyValencePreset('shared_octet')" class="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-[11px] font-bold transition">
+                  4方向 共有(●○)
+                </button>
+                <button onclick="applyValencePreset('carbon')" class="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-[11px] font-bold transition">
+                  14族 C型 (4方向 •)
+                </button>
+                <button onclick="applyValencePreset('nitrogen')" class="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-[11px] font-bold transition">
+                  15族 N型 (••と3•)
+                </button>
+                <button onclick="applyValencePreset('oxygen')" class="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-[11px] font-bold transition">
+                  16族 O型 (2••と2•)
+                </button>
+                <button onclick="applyValencePreset('halogen')" class="px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-[11px] font-bold transition">
+                  17族 F/Cl (3••と•)
+                </button>
+              </div>
+              <button onclick="applyValencePreset('clear')" class="mt-0.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-300 text-[11px] font-bold transition">
+                この原子の電子をクリア
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: 12-DIRECTION COMPASS BUILDER (For fast iPad chain & ring building) -->
+        <div id="inspector-panel-compass" class="hidden flex-col gap-3">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-bold text-slate-600 dark:text-slate-300">
+              選択中の原子から、30°刻みの正確な角度で結合＋原子を自動追加します：
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center bg-slate-50/80 dark:bg-slate-950/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800">
+            <!-- Radial 12-Direction Clock Pad (7 cols) -->
+            <div class="sm:col-span-7 flex items-center justify-center py-1">
+              <div class="compass-ring" id="compass-ring-container">
+                <!-- Populated by JS with 12 directional buttons at 30° intervals -->
+              </div>
+            </div>
+
+            <!-- Options for Growth (5 cols) -->
+            <div class="sm:col-span-5 flex flex-col gap-2 text-xs">
+              <div class="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <div class="text-[11px] text-slate-400 mb-1">追加される元素・結合:</div>
+                <div class="font-bold text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                  <span id="compass-status-elem">元素: C</span>
+                  <span>/</span>
+                  <span id="compass-status-bond">単結合</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-1">※左下の元素パレット・結合パレットで選んだものが追加されます。</p>
+              </div>
+
+              <label class="flex items-center gap-2 cursor-pointer select-none p-1.5 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800">
+                <input type="checkbox" id="auto-advance-selection" checked class="w-4 h-4 accent-emerald-600 rounded">
+                <span class="font-semibold text-slate-700 dark:text-slate-200">追加した原子へ選択を自動移動（連続結合モード）</span>
+              </label>
+
+              <label class="flex items-center gap-2 cursor-pointer select-none p-1.5 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800">
+                <input type="checkbox" id="lewis-spacing-mode" class="w-4 h-4 accent-emerald-600 rounded">
+                <span class="font-semibold text-slate-700 dark:text-slate-200">電子式用 結合線なし配置（●○の隣にH等を置く）</span>
+              </label>
+
+              <button onclick="addFourHydrogensAroundSelected()" class="py-2 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-plus-minus"></i>
+                <span>周囲の空き方向に H を一括結合</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: CHARGE, INDIVIDUAL COLOR & SKELETAL CARBON -->
+        <div id="inspector-panel-prop" class="hidden flex-col gap-3">
+          <!-- Formal Charge on Selected Atom -->
+          <div>
+            <span class="text-xs font-bold text-slate-600 dark:text-slate-300 block mb-1.5">選択中の原子の右上電荷 (イオン・分極 δ)</span>
+            <div class="grid grid-cols-5 sm:grid-cols-9 gap-1.5">
+              <button onclick="setAtomCharge('')" class="py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-xs font-bold">なし</button>
+              <button onclick="setAtomCharge('+')" class="py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 text-xs font-bold">＋</button>
+              <button onclick="setAtomCharge('-')" class="py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-300 text-xs font-bold">ー</button>
+              <button onclick="setAtomCharge('2+')" class="py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 text-xs font-bold">2+</button>
+              <button onclick="setAtomCharge('2-')" class="py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-300 text-xs font-bold">2-</button>
+              <button onclick="setAtomCharge('3+')" class="py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 text-xs font-bold">3+</button>
+              <button onclick="setAtomCharge('3-')" class="py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-300 text-xs font-bold">3-</button>
+              <button onclick="setAtomCharge('δ+')" class="py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 text-xs font-bold">δ+</button>
+              <button onclick="setAtomCharge('δ-')" class="py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 text-xs font-bold">δ-</button>
+            </div>
+          </div>
+
+          <!-- Highlight Color for Selected Atom / Electrons / Bond -->
+          <div>
+            <span class="text-xs font-bold text-slate-600 dark:text-slate-300 block mb-1.5">選択した原子・結合・電子の強調カラー（官能基や配位電子の色分け用）</span>
+            <div class="flex flex-wrap items-center gap-2">
+              <button onclick="setSelectedHighlightColor('default')" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-bold flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded-full bg-slate-800 dark:bg-white"></span>標準色
+              </button>
+              <button onclick="setSelectedHighlightColor('#dc2626')" class="px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-700 text-xs font-bold flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded-full bg-red-600"></span>赤強調
+              </button>
+              <button onclick="setSelectedHighlightColor('#2563eb')" class="px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-xs font-bold flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded-full bg-blue-600"></span>青強調
+              </button>
+              <button onclick="setSelectedHighlightColor('#059669')" class="px-3 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-bold flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded-full bg-emerald-600"></span>緑強調
+              </button>
+              <button onclick="setSelectedHighlightColor('#d97706')" class="px-3 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-xs font-bold flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded-full bg-amber-600"></span>橙強調
+              </button>
+            </div>
+          </div>
+
+          <!-- Skeletal Carbon Toggle -->
+          <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+            <span class="text-xs font-bold text-slate-600 dark:text-slate-300">炭素「C」の文字表示（骨格構造式切替）</span>
+            <div class="flex items-center gap-2">
+              <button onclick="toggleSelectedCarbonVisibility(false)" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-xs font-bold">
+                Cを表示する
+              </button>
+              <button onclick="toggleSelectedCarbonVisibility(true)" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-xs font-bold">
+                Cを隠す (頂点のみ)
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 2. Real-Time High-Res PNG Preview & Export Studio Card -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/90 dark:border-slate-800 p-4 flex flex-col gap-3.5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-image text-emerald-500"></i>
+            <span>完成画像プレビュー & 高解像度PNG出力</span>
+          </h2>
+          <span id="export-dim-badge" class="text-[11px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500">
+            計算中...
+          </span>
+        </div>
+
+        <!-- Crisp Live PNG Preview Stage (Directly long-pressable / draggable on iPad!) -->
+        <div class="relative">
+          <div class="bg-checkerboard w-full min-h-[165px] max-h-[240px] rounded-xl border-2 border-slate-200/90 dark:border-slate-800 flex items-center justify-center p-3 overflow-auto">
+            <img
+              id="live-png-preview"
+              alt="化学式出力プレビュー"
+              class="max-w-full max-h-[210px] object-contain rounded shadow-sm select-auto"
+            />
+          </div>
+          <button
+            onclick="openModal('ipad-modal')"
+            class="absolute top-2 right-2 px-2.5 py-1 rounded-lg bg-slate-900/75 hover:bg-slate-900 text-white text-xs font-medium backdrop-blur-sm shadow flex items-center gap-1.5 transition"
+          >
+            <i class="fa-solid fa-expand"></i>
+            <span>拡大 / iPad長押し画面</span>
+          </button>
+        </div>
+
+        <!-- iPad Tip -->
+        <div class="px-3 py-2 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/50 text-[11px] sm:text-xs text-emerald-800 dark:text-emerald-200 flex items-center gap-2">
+          <i class="fa-solid fa-tablet-screen-button text-emerald-500 text-sm shrink-0"></i>
+          <span><strong>iPad連携:</strong> 上のプレビュー画像を直接<strong>長押し</strong>して「写真に保存」「コピー」するか、Split ViewでGoodNotes等へそのまま<strong>ドラッグ＆ドロップ</strong>できます！</span>
+        </div>
+
+        <!-- Export Style Settings (Background, Ink Color, Scale, Padding) -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+          <button onclick="setExportBg('transparent')" id="exp-bg-transparent" class="py-1.5 px-2 rounded-xl border-2 border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/40 text-xs font-bold flex items-center justify-center gap-1.5">
+            <span class="w-3 h-3 rounded-full bg-checkerboard border border-slate-400"></span>透過背景
+          </button>
+          <button onclick="setExportBg('white')" id="exp-bg-white" class="py-1.5 px-2 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-xs font-bold flex items-center justify-center gap-1.5">
+            <span class="w-3 h-3 rounded-full bg-white border border-slate-300"></span>白背景
+          </button>
+          <button onclick="setExportBg('black')" id="exp-bg-black" class="py-1.5 px-2 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-xs font-bold flex items-center justify-center gap-1.5">
+            <span class="w-3 h-3 rounded-full bg-slate-900 border border-slate-600"></span>黒背景
+          </button>
+          <button onclick="toggleBaseInkColor()" id="exp-ink-btn" class="py-1.5 px-2 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-xs font-bold flex items-center justify-center gap-1.5" title="透過背景時の基本文字色（黒⇔白）を切り替え">
+            <i class="fa-solid fa-pen-nib"></i>
+            <span id="exp-ink-label">基本色: 黒</span>
+          </button>
+        </div>
+
+        <!-- Scale & Padding Controls -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs font-bold text-slate-500 shrink-0">解像度:</span>
+            <button onclick="setExportScale(2)" id="exp-scale-2" class="flex-1 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold">2x</button>
+            <button onclick="setExportScale(3)" id="exp-scale-3" class="flex-1 py-1 rounded-lg border-2 border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-xs font-bold">3x 高画質</button>
+            <button onclick="setExportScale(4)" id="exp-scale-4" class="flex-1 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold">4x 超高画質</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-slate-500 shrink-0">余白:</span>
+            <input type="range" min="10" max="70" step="5" value="25" oninput="setExportPadding(this.value)" class="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg accent-emerald-600 cursor-pointer">
+            <span id="exp-padding-label" class="text-xs font-mono font-bold text-emerald-600 w-10 text-right">25px</span>
+          </div>
+        </div>
+
+        <!-- Primary Download / Copy Buttons -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+          <button onclick="downloadPng()" class="py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 transition active:scale-[0.99]">
+            <i class="fa-solid fa-download"></i>
+            <span>PNG画像をダウンロード</span>
+          </button>
+          <button onclick="copyPngToClipboard()" class="py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-500/20 flex items-center justify-center gap-2 transition active:scale-[0.99]">
+            <i class="fa-regular fa-copy"></i>
+            <span>画像をクリップボードにコピー</span>
+          </button>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- ================= MODALS ================= -->
+
+  <!-- 1. Preset Dictionary Modal (Lewis Structures & Structural Formulas) -->
+  <div id="preset-modal" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-5xl w-full max-h-[88vh] flex flex-col shadow-2xl">
+      <div class="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-flask-vial text-amber-500 text-xl"></i>
+          <div>
+            <h3 class="font-bold text-base sm:text-lg">高校化学・大学受験 頻出プリセット辞書</h3>
+            <p class="text-xs text-slate-500">ワンタップでキャンバスに読み込み、自由に加工・色分けして画像保存できます</p>
+          </div>
+        </div>
+        <button onclick="closeModal('preset-modal')" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="px-4 sm:px-5 pt-3 flex gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+        <button onclick="filterPresets('all')" id="preset-tab-all" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white text-xs sm:text-sm font-bold transition">
+          すべて表示
+        </button>
+        <button onclick="filterPresets('電子式')" id="preset-tab-lewis" class="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs sm:text-sm font-bold transition">
+          電子式（ルイス構造式・●○区別）
+        </button>
+        <button onclick="filterPresets('構造式')" id="preset-tab-struct" class="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs sm:text-sm font-bold transition">
+          構造式（有機・無機・錯イオン）
+        </button>
+      </div>
+
+      <div id="preset-cards-container" class="p-4 sm:p-5 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. iPad Dedicated Long-Press & Drag Modal -->
+  <div id="ipad-modal" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-3xl w-full p-5 shadow-2xl flex flex-col gap-4">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center">
+            <i class="fa-solid fa-tablet-screen-button"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base">iPad 長押し保存 / ドラッグ＆ドロップ専用プレビュー</h3>
+            <p class="text-xs text-slate-500">下の画像を長押しして「写真に保存」「コピー」、またはSplit Viewでノートアプリへドラッグしてください</p>
+          </div>
+        </div>
+        <button onclick="closeModal('ipad-modal')" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="bg-checkerboard rounded-xl border-2 border-dashed border-emerald-300 dark:border-emerald-800 p-6 min-h-[260px] flex items-center justify-center overflow-auto">
+        <img id="modal-png-preview" alt="長押し保存用プレビュー" class="max-w-full max-h-[55vh] object-contain rounded shadow-md" />
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <button onclick="downloadPng()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold flex items-center gap-2">
+          <i class="fa-solid fa-download"></i>
+          <span>PNGファイルとして保存</span>
+        </button>
+        <button onclick="closeModal('ipad-modal')" class="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-bold">
+          閉じる
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Saved Library Modal -->
+  <div id="saved-modal" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+      <div class="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-bookmark text-emerald-500 text-lg"></i>
+          <div>
+            <h3 class="font-bold text-base sm:text-lg">マイライブラリ（保存した電子式・構造式）</h3>
+            <p class="text-xs text-slate-500">ブラウザに自動保存され、いつでも再編集できます</p>
+          </div>
+        </div>
+        <button onclick="closeModal('saved-modal')" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40 flex gap-2">
+        <input
+          type="text"
+          id="library-title-input"
+          placeholder="現在の構造に名前を付けて保存（例: アンモニウムイオンの電子式）"
+          class="flex-1 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 text-sm outline-none focus:border-emerald-500"
+        />
+        <button onclick="saveToLibraryWithCustomName()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shrink-0">
+          現在の式を保存
+        </button>
+      </div>
+
+      <div id="saved-list-container" class="p-4 sm:p-5 overflow-y-auto flex flex-col gap-2.5 flex-1">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Quick Guide Modal -->
+  <div id="guide-modal" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+      <div class="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-book-open text-emerald-500 text-lg"></i>
+          <h3 class="font-bold text-base sm:text-lg">電子式・構造式を素早く綺麗に作るコツ</h3>
+        </div>
+        <button onclick="closeModal('guide-modal')" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div class="p-5 overflow-y-auto space-y-3.5 text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+        <div class="p-3.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/50">
+          <h4 class="font-bold text-emerald-900 dark:text-emerald-200 mb-1">💡 1. 電子式（●と○の区別）の作り方</h4>
+          <p>キャンバス上の原子をタップして選択し、右上の<strong>「電子式 (●/○) 設定」</strong>タブを開きます。<br>
+          ・非共有電子対は <strong>「•• (2個)」</strong><br>
+          ・自分の電子と相手の電子を区別する共有電子対は <strong>「●○ (共有ペア)」</strong><br>
+          ・二重結合や三重結合の電子式には <strong>「•••• (4個)」</strong> や <strong>「•••••• (6個)」</strong> を選んで上下左右の枠をタップするだけで美しく配置されます。</p>
+        </div>
+        <div class="p-3.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/50">
+          <h4 class="font-bold text-indigo-900 dark:text-indigo-200 mb-1">🧭 2. 「12方向結合パッド」で有機化学・錯イオンも秒速作成</h4>
+          <p>右パネルの<strong>「12方向結合パッド」</strong>を使うと、選択中の原子から30°刻み（時計の12方向）の正確な角度・長さで新しい原子と結合をワンタップで伸ばせます。電子式で結合線を描かずに隣にHを置きたい場合は「電子式用 結合線なし配置」にチェックを入れて方向ボタンを押してください。</p>
+        </div>
+        <div class="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/50">
+          <h4 class="font-bold text-amber-900 dark:text-amber-200 mb-1">🧪 3. 多原子イオンや錯イオンの大括弧 <code class="font-mono">[ 　 ]^n±</code></h4>
+          <p>左下の<strong>「[ 　 ]⁺」「[ 　 ]⁻」「[ 　 ]²⁺」</strong>ボタンをタップすると、選択中の原子（未選択時は分子全体）を自動で計算した美しい角括弧で囲み、右上に電荷を付与します。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 pointer-events-none flex flex-col gap-2"></div>
+
+  <!-- ================= APPLICATION JAVASCRIPT ================= -->
+  <script>
+    // --- 1. Constants & Palettes ---
+    const ELEMENTS_LIST = [
+      { label: 'H', name: '水素' },
+      { label: 'C', name: '炭素' },
+      { label: 'O', name: '酸素' },
+      { label: 'N', name: '窒素' },
+      { label: 'S', name: '硫黄' },
+      { label: 'P', name: 'リン' },
+      { label: 'F', name: 'フッ素' },
+      { label: 'Cl', name: '塩素' },
+      { label: 'Br', name: '臭素' },
+      { label: 'I', name: 'ヨウ素' },
+      { label: 'Na', name: 'ナトリウム' },
+      { label: 'Ca', name: 'カルシウム' },
+      { label: 'Cu', name: '銅 Cu' },
+      { label: 'Zn', name: '亜鉛 Zn' },
+      { label: 'Ag', name: '銀 Ag' },
+      { label: 'Fe', name: '鉄 Fe' },
+      // Functional Groups (Anchored directly on the connecting atom!)
+      { label: 'OH', name: 'ヒドロキシ基 (-OH / HO-)', isGroup: true },
+      { label: 'CH3', name: 'メチル基 (-CH₃ / H₃C-)', isGroup: true },
+      { label: 'COOH', name: 'カルボキシ基 (-COOH)', isGroup: true },
+      { label: 'CHO', name: 'アルデヒド基 (-CHO)', isGroup: true },
+      { label: 'CH2OH', name: 'ヒドロキシメチル基 (-CH₂OH)', isGroup: true },
+      { label: 'NH2', name: 'アミノ基 (-NH₂ / H₂N-)', isGroup: true },
+      { label: 'NH3', name: 'アンミン配位子 (NH₃)', isGroup: true },
+      { label: 'NO2', name: 'ニトロ基 (-NO₂)', isGroup: true },
+      { label: 'SO3H', name: 'スルホ基 (-SO₃H)', isGroup: true },
+      { label: 'CN', name: 'シアノ基 (-CN)', isGroup: true },
+      { label: 'H2O', name: 'アクア (H₂O)', isGroup: true },
+      { label: 'R', name: '炭化水素基 (R)', isGroup: true }
+    ];
+
+    const BOND_TYPES = [
+      { key: 'single', label: '単結合', symbol: 'ー' },
+      { key: 'double', label: '二重結合', symbol: '＝' },
+      { key: 'triple', label: '三重結合', symbol: '≡' },
+      { key: 'coord', label: '配位 →', symbol: '→' },
+      { key: 'coord_rev', label: '配位 ←', symbol: '←' },
+      { key: 'dashed', label: '破線 ･･･', symbol: '⋯' },
+      { key: 'wedge', label: 'くさび(前)', symbol: '▲' },
+      { key: 'hatch', label: 'ハッチ(奥)', symbol: '▤' }
+    ];
+
+    const ELECTRON_BRUSHES = [
+      { key: 'dot2', label: '非共有対', symbol: '••' },
+      { key: 'mix2', label: '共有ペア', symbol: '●○' },
+      { key: 'dot1', label: '不対電子', symbol: '•' },
+      { key: 'open1', label: '白丸1個', symbol: '○' },
+      { key: 'open2', label: '白丸ペア', symbol: '○○' },
+      { key: 'dot4', label: '二重(4個)', symbol: '••••' },
+      { key: 'dot6', label: '三重(6個)', symbol: '••••••' },
+      { key: 'none', label: '消去', symbol: 'なし' }
+    ];
+
+    const STORAGE_KEY_LIBRARY = 'chem_struct_lewis_library_v2';
+
+    // --- 2. Application State ---
+    const state = {
+      toolMode: 'select', // 'select' | 'atom' | 'bond' | 'eraser'
+      multiSelect: false,
+      activeElement: 'H',
+      activeBondType: 'single',
+      activeElectronBrush: 'dot2',
+      snapToGrid: true,
+
+      // Intuitive Canvas Sprout Controls
+      showSproutGuides: true,
+      sproutAdvanceSelection: false, // false = Keep parent atom selected (easy branching); true = Move to new atom (chaining)
+      bondLengthMode: 'auto', // 'auto' | 'standard' (68px) | 'short' (50px)
+      quickStripCategory: 'popular',
+
+      // Selection
+      selectedAtomIds: [],
+      selectedBondId: null,
+      bondDragStartAtomId: null,
+      bondDragCurrentPos: null,
+
+      // Camera viewBox
+      viewBox: { x: 0, y: 0, w: 800, h: 500 },
+      isDraggingAtom: false,
+      hasMovedDuringDrag: false,
+      isPanningCanvas: false,
+      dragStartClient: { x: 0, y: 0 },
+      dragStartViewBox: { x: 0, y: 0 },
+      dragAtomInitialPositions: {},
+
+      // Scene Graph
+      scene: {
+        atoms: [],
+        bonds: [],
+        brackets: [],
+        decorations: []
+      },
+
+      // Undo / Redo Stacks
+      undoStack: [],
+      redoStack: [],
+
+      // Export Settings
+      exportBg: 'transparent',
+      baseInkColor: '#0f172a',
+      exportScale: 3,
+      exportPadding: 25,
+      currentPngDataUrl: '',
+
+      // Saved Library
+      savedLibrary: []
+    };
+
+    // Helper to create clean atom objects
+    function makeAtom(id, x, y, label, opts = {}) {
+      return {
+        id,
+        x: Math.round(x),
+        y: Math.round(y),
+        label: label || 'C',
+        hideLabel: Boolean(opts.hideLabel),
+        flipText: opts.flipText || 'auto', // 'auto' | 'right' | 'left'
+        charge: opts.charge || '',
+        color: opts.color || 'default',
+        electrons: Object.assign({ top: 'none', right: 'none', bottom: 'none', left: 'none' }, opts.electrons || {})
+      };
+    }
+
+    function makeBond(id, from, to, type = 'single', color = 'default') {
+      return { id, from, to, type, color };
+    }
+
+    // --- 3. Comprehensive Built-In Compound Templates (Ready to Edit) ---
+    const PRESETS = [
+      // ==================== 鎖式有機 (Aliphatic) ====================
+      {
+        id: 'struct_ethylene',
+        category: '構造式',
+        subCat: 'aliphatic',
+        popular: true,
+        shortName: 'エチレン C₂H₄',
+        title: 'エチレン C₂H₄（二重結合・120°正確配置）',
+        desc: 'C＝C二重結合と120°方向の4つの水素原子。HをタップしてClやCH₃に変えれば誘導体も即作成可能！',
+        scene: (() => {
+          const c1x = 362, c2x = 438, cy = 250;
+          const rH = 58;
+          const degsLeft = [120, 240];
+          const degsRight = [60, -60];
+          const atoms = [
+            makeAtom('c1', c1x, cy, 'C'),
+            makeAtom('c2', c2x, cy, 'C')
+          ];
+          const bonds = [makeBond('bcc', 'c1', 'c2', 'double')];
+          degsLeft.forEach((d, idx) => {
+            const rad = (d * Math.PI) / 180;
+            atoms.push(makeAtom(`hl${idx}`, c1x + rH * Math.cos(rad), cy + rH * Math.sin(rad), 'H'));
+            bonds.push(makeBond(`bhl${idx}`, 'c1', `hl${idx}`, 'single'));
+          });
+          degsRight.forEach((d, idx) => {
+            const rad = (d * Math.PI) / 180;
+            atoms.push(makeAtom(`hr${idx}`, c2x + rH * Math.cos(rad), cy + rH * Math.sin(rad), 'H'));
+            bonds.push(makeBond(`bhr${idx}`, 'c2', `hr${idx}`, 'single'));
+          });
+          return { atoms, bonds, brackets: [], decorations: [] };
+        })()
+      },
+      {
+        id: 'struct_acetylene',
+        category: '構造式',
+        subCat: 'aliphatic',
+        popular: true,
+        shortName: 'アセチレン C₂H₂',
+        title: 'アセチレン C₂H₂（三重結合・直線形）',
+        desc: 'H—C≡C—H の直線状構造式',
+        scene: {
+          atoms: [
+            makeAtom('h1', 298, 250, 'H'),
+            makeAtom('c1', 362, 250, 'C'),
+            makeAtom('c2', 438, 250, 'C'),
+            makeAtom('h2', 502, 250, 'H')
+          ],
+          bonds: [
+            makeBond('b1', 'c1', 'h1', 'single'),
+            makeBond('b2', 'c1', 'c2', 'triple'),
+            makeBond('b3', 'c2', 'h2', 'single')
+          ],
+          brackets: [],
+          decorations: []
+        }
+      },
+      {
+        id: 'struct_methane',
+        category: '構造式',
+        subCat: 'aliphatic',
+        popular: false,
+        shortName: 'メタン CH₄',
+        title: 'メタン CH₄（構造式）',
+        desc: '中心炭素Cと上下左右4つの水素H',
+        scene: {
+          atoms: [
+            makeAtom('c1', 400, 250, 'C'),
+            makeAtom('h1', 400, 190, 'H'),
+            makeAtom('h2', 400, 310, 'H'),
+            makeAtom('h3', 340, 250, 'H'),
+            makeAtom('h4', 460, 250, 'H')
+          ],
+          bonds: [
+            makeBond('b1', 'c1', 'h1', 'single'),
+            makeBond('b2', 'c1', 'h2', 'single'),
+            makeBond('b3', 'c1', 'h3', 'single'),
+            makeBond('b4', 'c1', 'h4', 'single')
+          ],
+          brackets: [],
+          decorations: []
+        }
+      },
+      {
+        id: 'struct_ethanol',
+        category: '構造式',
+        subCat: 'aliphatic',
+        popular: true,
+        shortName: 'エタノール C₂H₅OH',
+        title: 'エタノール CH₃CH₂OH（展開構造式）',
+        desc: 'エチル基とヒドロキシ基(-O-H)の全結合を美しく整列した構造式',
+        scene: {
+          atoms: [
+            makeAtom('c1', 310, 250, 'C'),
+            makeAtom('h1', 310, 190, 'H'),
+            makeAtom('h2', 250, 250, 'H'),
+            makeAtom('h3', 310, 310, 'H'),
+            makeAtom('c2', 382, 250, 'C'),
+            makeAtom('h4', 382, 190, 'H'),
+            makeAtom('h5', 382, 310, 'H'),
+            makeAtom('o1', 454, 250, 'O', { color: '#dc2626' }),
+            makeAtom('h6', 514, 250, 'H', { color: '#dc2626' })
+          ],
+          bonds: [
+            makeBond('b1', 'c1', 'h1', 'single'),
+            makeBond('b2', 'c1', 'h2', 'single'),
+            makeBond('b3', 'c1', 'h3', 'single'),
+            makeBond('b4', 'c1', 'c2', 'single'),
+            makeBond('b5', 'c2', 'h4', 'single'),
+            makeBond('b6', 'c2', 'h5', 'single'),
+            makeBond('b7', 'c2', 'o1', 'single', '#dc2626'),
+            makeBond('b8', 'o1', 'h6', 'single', '#dc2626')
+          ],
+          brackets: [],
+          decorations: []
+        }
+      },
+      {
+        id: 'struct_acetic_acid',
+        category: '構造式',
+        subCat: 'aliphatic',
+        popular: true,
+        shortName: '酢酸 CH₃COOH',
+        title: '酢酸 CH₃COOH（展開構造式）',
+        desc: 'メチル基とカルボキシ基（C=O二重結合と-O-H）を展開した構造式',
+        scene: {
+          atoms: [
+            makeAtom('c1', 325, 260, 'C'),
+            makeAtom('h1', 325, 200, 'H'),
+            makeAtom('h2', 265, 260, 'H'),
+            makeAtom('h3', 325, 320, 'H'),
+            makeAtom('c2', 397, 260, 'C', { color: '#dc2626' }),
+            makeAtom('o1', 397, 196, 'O', { color: '#dc2626' }),
+            makeAtom('o2', 465, 260, 'O', { color: '#dc2626' }),
+            makeAtom('h4', 525, 260, 'H', { color: '#dc2626' })
+          ],
+          bonds: [
+            makeBond('b1', 'c1', 'h1', 'single'),
+            makeBond('b2', 'c1', 'h2', 'single'),
+            makeBond('b3', 'c1', 'h3', 'single'),
+            makeBond('b4', 'c1', 'c2', 'single'),
+            makeBond('b5', 'c2', 'o1', 'double', '#dc2626'),
+            makeBond('b6', 'c2', 'o2', 'single', '#dc2626'),
+            makeBond('b7', 'o2', 'h4', 'single', '#dc2626')
+          ],
+          brackets: [],
+          decorations: []
+        }
+      },
+      {
+        id: 'struct_acetaldehyde',
+        category: '構造式',
+        subCat: 'aliphatic',
+        popular: false,
+        shortName: 'アセトアルデヒド',
+        title: 'アセトアルデヒド CH₃CHO',
+        desc: 'アルデヒド基（-CH=O）を持つ代表化合物',
+        scene: {
+          atoms: [
+            makeAtom('c1', 340, 260, 'C'),
+            makeAtom('h1', 340, 200, 'H'),
+            makeAtom('h2', 280, 260, 'H'),
+            makeAtom('h3', 340, 320, 'H'),
+            makeAtom('c2', 412, 260, 'C', { color: '#dc2626' }),
+            makeAtom('o1', 412, 196, 'O', { color: '#dc2626' }),
+            makeAtom('h4', 474, 260, 'H', { color: '#dc2626' })
+          ],
+          bonds: [
+            makeBond('b1', 'c1', 'h1', 'single'),
+            makeBond('b2', 'c1', 'h2', 'single'),
+            makeBond('b3', 'c1', 'h3', 'single'),
+            makeBond('b4', 'c1', 'c2', 'single'),
+            makeBond('b5', 'c2', 'o1', 'double', '#dc2626'),
+            makeBond('b6', 'c2', 'h4', 'single', '#dc2626')
+          ],
+          brackets: [],
+          decorations: []
+        }
+      },
+      {
+        id: 'struct_amino_acid',
+        category: '構造式',
+        subCat: 'aliphatic',
+        popular: true,
+        shortName: 'α-アミノ酸一般式',
+        title: 'α-アミノ酸の一般構造式 H₂N-CH(R)-COOH',
+        desc: '不斉炭素Cを中心にアミノ基(H₂N-)・カルボキシ基(-COOH)・側鎖(R)・水素(H)が結合',
+        scene: {
+          atoms: [
+            makeAtom('c1', 400, 250, 'C'),
+            makeAtom('h1', 400, 188, 'H'),
+            makeAtom('r1', 400, 312, 'R', { color: '#059669' }),
+            makeAtom('n1', 326, 250, 'NH2', { color: '#2563eb' }),
+            makeAtom('c2', 474, 250, 'COOH', { color: '#dc2626' })
+          ],
+          bonds: [
+            makeBond('b1', 'c1', 'h1', 'single'),
+            makeBond('b2', 'c1', 'r1', 'single', '#059669'),
+            makeBond('b3', 'c1', 'n1', 'single', '#2563eb'),
+            makeBond('b4', 'c1', 'c2', 'single', '#dc2626')
+          ],
+          brackets: [],
+          decorations: []
+        }
+      },
+
+      // ==================== 芳香族 (Aromatics) ====================
+      {
+        id: 'struct_benzene',
+        category: '構造式',
+        subCat: 'aromatic',
+        popular: true,
+        shortName: 'ベンゼン C₆H₆ (全原子)',
+        title: 'ベンゼン C₆H₆（全原子明示・誘導体ベース）',
+        desc: '周囲のHをタップしてOH・CH₃・NO₂・COOHに変えるだけであらゆる芳香族化合物が作れます！',
+        scene: (() => {
+          const cx = 400, cy = 250, rC = 68, rH = 122;
+          const atoms = [];
+          const bonds = [];
+          for (let i = 0; i < 6; i++) {
+            const deg = -90 + i * 60;
+            const rad = (deg * Math.PI) / 180;
+            atoms.push(makeAtom(`c${i}`, cx + rC * Math.cos(rad), cy + rC * Math.sin(rad), 'C'));
+            atoms.push(makeAtom(`h${i}`, cx + rH * Math.cos(rad), cy + rH * Math.sin(rad), 'H'));
+            bonds.push(makeBond(`bh${i}`, `c${i}`, `h${i}`, 'single'));
+          }
+          for (let i = 0; i < 6; i++) {
+            const next = (i + 1) % 6;
+            bonds.push(makeBond(`bc${i}`, `c${i}`, `c${next}`, i % 2 === 0 ? 'double' : 'single'));
+          }
+          return { atoms, bonds, brackets: [], decorations: [] };
+        })()
+      },
+      {
+        id: 'struct_benzene_skeletal',
+        category: '構造式',
+        subCat: 'aromatic',
+        popular: true,
+        shortName: 'ベンゼン環 (骨格)',
+        title: 'ベンゼン環（骨格ケクレ式）',
+        desc: '頂点の炭素Cを省略した教科書標準のベンゼン環。頂点をタップして「＋」で置換基を伸ばせます',
+        scene: (() => {
+          const cx = 400, cy = 250, rC = 68;
+          const atoms = [];
+          const bonds = [];
+          for (let i = 0; i < 6; i++) {
+            const deg = -90 + i * 60;
+            const rad = (deg * Math.PI) / 180;
+            atoms.push(makeAtom(`c${i}`, cx + rC * Math.cos(rad), cy + rC * Math.sin(rad), 'C', { hideLabel: true }));
+          }
+          for (let i = 0; i < 6; i++) {
+            const next = (i + 1) % 6;
+            bonds.push(makeBond(`bc${i}`, `c${i}`, `c${next}`, i % 2 === 0 ? 'double' : 'single'));
+          }
+          return { atoms, bonds, brackets: [], decorations: [] };
+        })()
+      },
+      {
+        id: 'struct_phenol',
+        category: '構造式',
+        subCat: 'aromatic',
+        popular: false,
+        shortName: 'フェノール C₆H₅OH',
+        title: 'フェノール C₆H₅OH',
+        desc: 'ベンゼン環にヒドロキシ基(-OH)が結合した構造',
+        scene: (() => {
+          const cx = 400, cy = 265, rC = 66;
+          const atoms = [];
+          const bonds = [];
+          for (let i = 0; i < 6; i++) {
+            const deg = -90 + i * 60;
+            const rad = (deg * Math.PI) / 180;
+            atoms.push(makeAtom(`c${i}`, cx + rC * Math.cos(rad), cy + rC * Math.sin(rad), 'C', { hideLabel: true }));
+          }
+          for (let i = 0; i < 6; i++) {
+            bonds.push(makeBond(`bc${i}`, `c${i}`, `c${(i + 1) % 6}`, i % 2 === 0 ? 'double' : 'single'));
+          }
+          atoms.push(makeAtom('g0', cx, cy - rC - 56, 'OH', { color: '#dc2626' }));
+          bonds.push(makeBond('bg0', 'c0', 'g0', 'single', '#dc2626'));
+          return { atoms, bonds, brackets: [], decorations: [] };
+        })()
+      },
+      {
+        id: 'struct_salicylic',
+        category: '構造式',
+        subCat: 'aromatic',
+        popular: true,
+        shortName: 'サリチル酸',
+        title: 'サリチル酸 C₆H₄(OH)COOH',
+        desc: 'ベンゼン環のオルト位にカルボキシ基(-COOH)とヒドロキシ基(-OH)',
+        scene: (() => {
+          const cx = 375, cy = 265, rC = 66, rOuter = 124;
+          const atoms = [];
+          const bonds = [];
+          for (let i = 0; i < 6; i++) {
+            const deg = -90 + i * 60;
+            const rad = (deg * Math.PI) / 180;
+            atoms.push(makeAtom(`c${i}`, cx + rC * Math.cos(rad), cy + rC * Math.sin(rad), 'C', { hideLabel: true }));
+          }
+          for (let i = 0; i < 6; i++) {
+            bonds.push(makeBond(`bc${i}`, `c${i}`, `c${(i + 1) % 6}`, i % 2 === 0 ? 'double' : 'single'));
+          }
+          // Top substituent: COOH
+          atoms.push(makeAtom('g0', cx, cy - rOuter, 'COOH', { color: '#2563eb' }));
+          bonds.push(makeBond('bg0', 'c0', 'g0', 'single', '#2563eb'));
+          // Ortho substituent (60 deg): OH
+          const rad1 = (-30 * Math.PI) / 180;
+          atoms.push(makeAtom('g1', cx + rOuter * Math.cos(rad1), cy + rOuter * Math.sin(rad1), 'OH', { color: '#dc2626' }));
+          bonds.push(makeBond('bg1', 'c1', 'g1', 'single', '#dc2626'));
+          return { atoms, bonds, brackets: [], decorations: [] };
+        })()
+      },
+
+      // ==================== 糖類・環状 (Sugars & Haworth Projections) ====================
+      {
+        id: 'struct_alpha_glucose',
+        category: '構造式',
+        subCat: 'sugar',
+        popular: true,
+        shortName: 'α-グルコース',
+        title: 'α-グルコース（ハース投影式・全置換基付）',
+        desc: 'ピラノース六員環と各炭素の上下置換基(H/OH/CH₂OH)を完全再現。右端C1のHとOHを入れ替えればβ型になります！',
+        scene: (() => {
+          // Standard textbook Haworth hexagon:
+          // O at upper-right, C1 at right-most, C2 at bottom-right, C3 at bottom-left, C4 at left-most, C5 at upper-left
+          const atoms = [
+            makeAtom('o_ring', 446, 192, 'O', { color: '#dc2626' }),
+            makeAtom('c1',     498, 250, 'C'),
+            makeAtom('c2',     446, 308, 'C'),
+            makeAtom('c3',     354, 308, 'C'),
+            makeAtom('c4',     302, 250, 'C'),
+            makeAtom('c5',     354, 192, 'C'),
+
+            // C1 axial groups (alpha-glucose: H up, OH down)
+            makeAtom('c1_up', 498, 192, 'H'),
+            makeAtom('c1_dn', 498, 308, 'OH', { color: '#dc2626' }),
+
+            // C2 axial groups (H up, OH down)
+            makeAtom('c2_up', 446, 254, 'H'),
+            makeAtom('c2_dn', 446, 362, 'OH'),
+
+            // C3 axial groups (OH up, H down)
+            makeAtom('c3_up', 354, 254, 'OH'),
+            makeAtom('c3_dn', 354, 362, 'H'),
+
+            // C4 axial groups (H up, OH down)
+            makeAtom('c4_up', 302, 192, 'H'),
+            makeAtom('c4_dn', 302, 308, 'OH'),
+
+            // C5 axial groups (CH2OH up, H down)
+            makeAtom('c5_up', 354, 134, 'CH2OH', { color: '#2563eb' }),
+            makeAtom('c5_dn', 354, 246, 'H')
+          ];
+
+          const bonds = [
+            // Ring bonds
+            makeBond('br1', 'o_ring', 'c1', 'single'),
+            makeBond('br2', 'c1', 'c2', 'single'),
+            makeBond('br3', 'c2', 'c3', 'single'),
+            makeBond('br4', 'c3', 'c4', 'single'),
+            makeBond('br5', 'c4', 'c5', 'single'),
+            makeBond('br6', 'c5', 'o_ring', 'single'),
+
+            // Vertical axial bonds
+            makeBond('b_c1u', 'c1', 'c1_up', 'single'),
+            makeBond('b_c1d', 'c1', 'c1_dn', 'single', '#dc2626'),
+            makeBond('b_c2u', 'c2', 'c2_up', 'single'),
+            makeBond('b_c2d', 'c2', 'c2_dn', 'single'),
+            makeBond('b_c3u', 'c3', 'c3_up', 'single'),
+            makeBond('b_c3d', 'c3', 'c3_dn', 'single'),
+            makeBond('b_c4u', 'c4', 'c4_up', 'single'),
+            makeBond('b_c4d', 'c4', 'c4_dn', 'single'),
+            makeBond('b_c5u', 'c5', 'c5_up', 'single', '#2563eb'),
+            makeBond('b_c5d', 'c5', 'c5_dn', 'single')
+          ];
+
+          return { atoms, bonds, brackets: [], decorations: [] };
+        })()
+      },
+      {
+        id: 'struct_beta_glucose',
+        category: '構造式',
+        subCat: 'sugar',
+        popular: false,
+        shortName: 'β-グルコース',
+        title: 'β-グルコース（ハース投影式）',
+        desc: '右端C1位のヒドロキシ基(-OH)が上向きになったβ-グルコース構造',
+        scene: (() => {
+          const atoms = [
+            makeAtom('o_ring', 446, 192, 'O', { color: '#dc2626' }),
+            makeAtom('c1',     498, 250, 'C'),
+            makeAtom('c2',     446, 308, 'C'),
+            makeAtom('c3',     354, 308, 'C'),
+            makeAtom('c4',     302, 250, 'C'),
+            makeAtom('c5',     354, 192, 'C'),
+
+            // C1 axial groups (beta-glucose: OH up, H down)
+            makeAtom('c1_up', 498, 192, 'OH', { color: '#dc2626' }),
+            makeAtom('c1_dn', 498, 308, 'H'),
+
+            makeAtom('c2_up', 446, 254, 'H'),
+            makeAtom('c2_dn', 446, 362, 'OH'),
+            makeAtom('c3_up', 354, 254, 'OH'),
+            makeAtom('c3_dn', 354, 362, 'H'),
+            makeAtom('c4_up', 302, 192, 'H'),
+            makeAtom('c4_dn', 302, 308, 'OH'),
+            makeAtom('c5_up', 354, 134, 'CH2OH', { color: '#2563eb' }),
+            makeAtom('c5_dn', 354, 246, 'H')
+          ];
+
+          const bonds = [
+            makeBond('br1', 'o_ring', 'c1', 'single'),
+            makeBond('br2', 'c1', 'c2', 'single'),
+            makeBond('br3', 'c2', 'c3', 'single'),
+            makeBond('br4', 'c3', 'c4', 'single'),
+            makeBond('br5', 'c4', 'c5', 'single'),
+            makeBond('br6', 'c5', 'o_ring', 'single'),
+            makeBond('b_c1u', 'c1', 'c1_up', 'single', '#dc2626'),
+            makeBond('b_c1d', 'c1', 'c1_dn', 'single'),
+            makeBond('b_c2u', 'c2', 'c2_up', 'single'),
+            makeBond('b_c2d', 'c2', 'c2_dn', 'single'),
+            makeBond('b_c3u', 'c3', 'c3_up', 'single'),
+            makeBond('b_c3d', 'c3', 'c3_dn', 'single'),
+            makeBond('b_c4u', 'c4', 'c4_up', 'single'),
+            makeBond('b_c4d', 'c4', 'c4_dn', 'single'),
+            makeBond('b_c5u', 'c5', 'c5_up', 'single', '#2563eb'),
+            makeBond('b_c5d', 'c5', 'c5_dn', 'single')
+          ];
+          return { atoms, bonds, brackets: [], decorations: [] };
+        })()
+      },
+
+      // ==================== 電子式・錯イオン (Lewis & Ions) ====================
+      {
+        id: 'lewis_h2o',
+        category: '電子式',
+        subCat: 'lewis',
+        popular: true,
+        shortName: '水 H₂O (電子式)',
+        title: '水分子 H₂O（電子式・●○区別）',
+        desc: '酸素の非共有電子対(••)2組と、水素との共有電子対(●○)2組',
+        scene: {
+          atoms: [
+            makeAtom('a1', 400, 250, 'O', { electrons: { top: 'dot2', bottom: 'dot2', left: 'mix2', right: 'mix2' } }),
+            makeAtom('a2', 350, 250, 'H'),
+            makeAtom('a3', 450, 250, 'H')
+          ],
+          bonds: [],
+          brackets: [],
+          decorations: []
+        }
+      },
+      {
+        id: 'lewis_nh3',
+        category: '電子式',
+        subCat: 'lewis',
+        popular: true,
+        shortName: 'アンモニア NH₃ (電子式)',
+        title: 'アンモニア NH₃（電子式・●○区別）',
+        desc: '上の非共有電子対(••)と3方向の共有電子対(●○)',
+        scene: {
+          atoms: [
+            makeAtom('a1', 400, 250, 'N', { electrons: { top: 'dot2', bottom: 'mix2', left: 'mix2', right: 'mix2' } }),
+            makeAtom('a2', 350, 250, 'H'),
+            makeAtom('a3', 450, 250, 'H'),
+            makeAtom('a4', 400, 300, 'H')
+          ],
+          bonds: [],
+          brackets: [],
+          decorations: []
+        }
+      },
+      {
+        id: 'lewis_ch4',
+        category: '電子式',
+        subCat: 'lewis',
+        popular: false,
+        shortName: 'メタン CH₄ (電子式)',
+        title: 'メタン CH₄（電子式・●○区別）',
+        desc: '炭素の4個の価電子(●)と水素4個の電子(○)による共有電子対',
+        scene: {
+          atoms: [
+            makeAtom('a1', 400, 250, 'C', { electrons: { top: 'mix2', bottom: 'mix2', left: 'mix2', right: 'mix2' } }),
+            makeAtom('a2', 400, 200, 'H'),
+            makeAtom('a3', 400, 300, 'H'),
+            makeAtom('a4', 350, 250, 'H'),
+            makeAtom('a5', 450, 250, 'H')
+          ],
+          bonds: [],
+          brackets: [],
+          decorations: []
+        }
+      },
+      {
+        id: 'lewis_ethylene',
+        category: '電子式',
+        subCat: 'lewis',
+        popular: false,
+        shortName: 'エチレン (電子式)',
+        title: 'エチレン C₂H₄（二重結合の電子式）',
+        desc: '炭素間の2組の共有電子対(••••)と4つのC-H共有電子対',
+        scene: {
+          atoms: [
+            makeAtom('c1', 372, 250, 'C', { electrons: { top: 'mix2', bottom: 'mix2', left: 'none', right: 'dot4' } }),
+            makeAtom('c2', 428, 250, 'C', { electrons: { top: 'mix2', bottom: 'mix2', left: 'none', right: 'none' } }),
+            makeAtom('h1', 372, 200, 'H'),
+            makeAtom('h2', 372, 300, 'H'),
+            makeAtom('h3', 428, 200, 'H'),
+            makeAtom('h4', 428, 300, 'H')
+          ],
+          bonds: [],
+          brackets: [],
+          decorations: []
+        }
+      },
+      {
+        id: 'lewis_nh4_plus',
+        category: '電子式',
+        subCat: 'lewis',
+        popular: true,
+        shortName: '[NH₄]⁺ (電子式)',
+        title: 'アンモニウムイオン [NH₄]⁺（電子式）',
+        desc: 'アンモニアの非共有電子対へのH⁺配位結合と大括弧 [ ]⁺',
+        scene: {
+          atoms: [
+            makeAtom('a1', 400, 250, 'N', { electrons: { top: 'dot2', bottom: 'mix2', left: 'mix2', right: 'mix2' } }),
+            makeAtom('a2', 400, 200, 'H', { color: '#2563eb' }),
+            makeAtom('a3', 400, 300, 'H'),
+            makeAtom('a4', 350, 250, 'H'),
+            makeAtom('a5', 450, 250, 'H')
+          ],
+          bonds: [],
+          brackets: [{ id: 'b1', atomIds: ['a1', 'a2', 'a3', 'a4', 'a5'], charge: '+', padding: 26 }],
+          decorations: []
+        }
+      },
+      {
+        id: 'lewis_co2',
+        category: '電子式',
+        subCat: 'lewis',
+        popular: true,
+        shortName: 'CO₂ (電子式)',
+        title: '二酸化炭素 CO₂（二重結合電子式）',
+        desc: '炭素と酸素の間の4電子共有(••••)と酸素の非共有電子対',
+        scene: {
+          atoms: [
+            makeAtom('a1', 400, 250, 'C', { electrons: { top: 'none', bottom: 'none', left: 'dot4', right: 'dot4' } }),
+            makeAtom('a2', 344, 250, 'O', { electrons: { top: 'dot2', bottom: 'dot2', left: 'none', right: 'none' } }),
+            makeAtom('a3', 456, 250, 'O', { electrons: { top: 'dot2', bottom: 'dot2', left: 'none', right: 'none' } })
+          ],
+          bonds: [],
+          brackets: [],
+          decorations: []
+        }
+      },
+      {
+        id: 'lewis_n2',
+        category: '電子式',
+        subCat: 'lewis',
+        popular: false,
+        shortName: '窒素 N₂ (電子式)',
+        title: '窒素分子 N₂（三重結合電子式）',
+        desc: '3組の共有電子対(••••••)と左右の非共有電子対(••)',
+        scene: {
+          atoms: [
+            makeAtom('a1', 372, 250, 'N', { electrons: { top: 'none', bottom: 'none', left: 'dot2', right: 'dot6' } }),
+            makeAtom('a2', 428, 250, 'N', { electrons: { top: 'none', bottom: 'none', left: 'none', right: 'dot2' } })
+          ],
+          bonds: [],
+          brackets: [],
+          decorations: []
+        }
+      },
+      {
+        id: 'struct_cu_complex',
+        category: '構造式',
+        subCat: 'lewis',
+        popular: true,
+        shortName: '[Cu(NH₃)₄]²⁺',
+        title: 'テトラアンミン銅(II)イオン [Cu(NH₃)₄]²⁺',
+        desc: '銅(II)イオンに向かう4本の配位結合矢印(→)と2+の大括弧',
+        scene: {
+          atoms: [
+            makeAtom('cu', 400, 250, 'Cu', { color: '#2563eb' }),
+            makeAtom('n1', 326, 186, 'NH3'),
+            makeAtom('n2', 474, 186, 'NH3'),
+            makeAtom('n3', 326, 314, 'NH3'),
+            makeAtom('n4', 474, 314, 'NH3')
+          ],
+          bonds: [
+            makeBond('b1', 'n1', 'cu', 'coord', '#2563eb'),
+            makeBond('b2', 'n2', 'cu', 'coord', '#2563eb'),
+            makeBond('b3', 'n3', 'cu', 'coord', '#2563eb'),
+            makeBond('b4', 'n4', 'cu', 'coord', '#2563eb')
+          ],
+          brackets: [{ id: 'br1', atomIds: ['cu', 'n1', 'n2', 'n3', 'n4'], charge: '2+', padding: 28 }],
+          decorations: []
+        }
+      }
+    ];
+
+    // --- 4. Initialization ---
+    window.addEventListener('DOMContentLoaded', () => {
+      renderQuickTemplateStrip();
+      renderElementPalette();
+      renderBondPalette();
+      renderElectronBrushPalette();
+      renderCompassButtons();
+      loadSavedLibraryFromStorage();
+      renderPresetCards('all');
+      setupCanvasEvents();
+      setupKeyboardShortcuts();
+
+      // Load Benzene Full Atom or Ethylene by default so user immediately sees crisp bonds and sprout handles
+      loadPresetById('struct_benzene', false);
+    });
+
+    function setupKeyboardShortcuts() {
+      window.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+          e.preventDefault();
+          if (e.shiftKey) redoAction();
+          else undoAction();
+        } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'y') {
+          e.preventDefault();
+          redoAction();
+        } else if (e.key === 'Backspace' || e.key === 'Delete') {
+          if (state.selectedAtomIds.length > 0 || state.selectedBondId) {
+            e.preventDefault();
+            deleteSelected();
+          }
+        }
+      });
+    }
+
+    // --- 5. Quick Template Bar & Palettes ---
+    function setQuickStripCategory(catKey) {
+      state.quickStripCategory = catKey;
+      ['popular', 'aliphatic', 'aromatic', 'sugar', 'lewis'].forEach(k => {
+        const btn = document.getElementById(`qcat-${k}`);
+        if (!btn) return;
+        if (k === catKey) {
+          btn.className = 'qcat-btn px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-600 text-white transition';
+        } else {
+          btn.className = 'qcat-btn px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition';
+        }
+      });
+      renderQuickTemplateStrip();
+    }
+
+    function renderQuickTemplateStrip() {
+      const strip = document.getElementById('quick-template-strip');
+      if (!strip) return;
+      strip.innerHTML = '';
+
+      const filtered = PRESETS.filter(p => {
+        if (state.quickStripCategory === 'popular') return p.popular;
+        return p.subCat === state.quickStripCategory;
+      });
+
+      filtered.forEach(p => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        const isLewis = p.category === '電子式';
+        chip.className = `shrink-0 px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 shadow-2xs ${
+          isLewis
+            ? 'bg-amber-50/70 hover:bg-amber-100 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200'
+            : 'bg-slate-50 hover:bg-emerald-50 dark:bg-slate-800/90 dark:hover:bg-emerald-950/60 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-emerald-400'
+        }`;
+        chip.innerHTML = `<i class="${isLewis ? 'fa-solid fa-ellipsis-vertical text-amber-500' : 'fa-solid fa-diagram-project text-emerald-500'}"></i><span>${p.shortName || p.title}</span>`;
+        chip.title = p.desc;
+        chip.onclick = () => loadPresetById(p.id, true);
+        strip.appendChild(chip);
+      });
+    }
+
+    function renderElementPalette() {
+      const container = document.getElementById('element-palette-container');
+      container.innerHTML = '';
+
+      ELEMENTS_LIST.forEach(item => {
+        const isSelected = state.activeElement === item.label;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        const baseCls = 'px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 border ';
+        const activeCls = isSelected
+          ? 'border-emerald-500 bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-500/30'
+          : item.isGroup
+            ? 'border-indigo-200 dark:border-indigo-800/80 bg-indigo-50/60 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:border-indigo-400'
+            : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-emerald-400';
+
+        btn.className = baseCls + activeCls;
+        btn.innerHTML = `<span>${formatChemLabelHtml(item.label)}</span>`;
+        btn.title = `${item.name}（選択中の原子を置換 / 次の＋追加元素に設定）`;
+        btn.onclick = () => selectElementFromPalette(item.label);
+        container.appendChild(btn);
+      });
+    }
+
+    function formatChemLabelHtml(label) {
+      return label.replace(/([A-Za-z\)\]])(\d+)/g, '$1<sub>$2</sub>');
+    }
+
+    function selectElementFromPalette(label) {
+      state.activeElement = label;
+      const statusEl = document.getElementById('compass-status-elem');
+      if (statusEl) statusEl.textContent = `元素: ${label}`;
+      renderElementPalette();
+
+      // If atoms are currently selected, immediately replace their element/functional group!
+      if (state.selectedAtomIds.length > 0) {
+        pushUndoState();
+        state.scene.atoms.forEach(a => {
+          if (state.selectedAtomIds.includes(a.id)) {
+            a.label = label;
+            a.hideLabel = false;
+          }
+        });
+        renderScene();
+      }
+    }
+
+    function applyCustomAtomLabel() {
+      const input = document.getElementById('custom-atom-input');
+      const val = input.value.trim();
+      if (!val) return;
+      selectElementFromPalette(val);
+      input.value = '';
+    }
+
+    function renderBondPalette() {
+      const container = document.getElementById('bond-palette-container');
+      container.innerHTML = '';
+
+      BOND_TYPES.forEach(b => {
+        const isSelected = state.activeBondType === b.key;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `py-1.5 px-2 rounded-xl border text-xs font-bold flex flex-col items-center justify-center transition ${
+          isSelected
+            ? 'border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300'
+            : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-emerald-400'
+        }`;
+        btn.innerHTML = `<span class="text-sm font-mono leading-none mb-0.5">${b.symbol}</span><span class="text-[10px]">${b.label}</span>`;
+        btn.onclick = () => {
+          state.activeBondType = b.key;
+          const statusBond = document.getElementById('compass-status-bond');
+          if (statusBond) statusBond.textContent = b.label;
+          renderBondPalette();
+
+          if (state.selectedBondId) {
+            const bond = state.scene.bonds.find(x => x.id === state.selectedBondId);
+            if (bond) {
+              pushUndoState();
+              bond.type = b.key;
+              renderScene();
+            }
+          }
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function renderElectronBrushPalette() {
+      const container = document.getElementById('electron-brush-container');
+      container.innerHTML = '';
+
+      ELECTRON_BRUSHES.forEach(eb => {
+        const isSelected = state.activeElectronBrush === eb.key;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `py-1.5 px-1 rounded-xl border text-xs font-bold flex flex-col items-center justify-center transition ${
+          isSelected
+            ? 'border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 shadow-sm'
+            : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
+        }`;
+        btn.innerHTML = `<span class="font-mono text-xs tracking-tighter">${eb.symbol}</span><span class="text-[10px] text-slate-500 dark:text-slate-400">${eb.label}</span>`;
+        btn.onclick = () => {
+          state.activeElectronBrush = eb.key;
+          renderElectronBrushPalette();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function renderCompassButtons() {
+      const ring = document.getElementById('compass-ring-container');
+      if (!ring) return;
+      ring.innerHTML = '';
+
+      const center = 92;
+      const radius = 68;
+
+      const centerDot = document.createElement('div');
+      centerDot.className = 'absolute w-10 h-10 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shadow-md';
+      centerDot.style.left = `${center - 20}px`;
+      centerDot.style.top = `${center - 20}px`;
+      centerDot.id = 'compass-center-label';
+      centerDot.textContent = 'C';
+      ring.appendChild(centerDot);
+
+      const clockLabels = [
+        { deg: -90, text: '↑' },
+        { deg: -60, text: '1時' },
+        { deg: -30, text: '2時' },
+        { deg: 0,   text: '→' },
+        { deg: 30,  text: '4時' },
+        { deg: 60,  text: '5時' },
+        { deg: 90,  text: '↓' },
+        { deg: 120, text: '7時' },
+        { deg: 150, text: '8時' },
+        { deg: 180, text: '←' },
+        { deg: -150, text: '10時' },
+        { deg: -120, text: '11時' }
+      ];
+
+      clockLabels.forEach(item => {
+        const rad = (item.deg * Math.PI) / 180;
+        const x = center + radius * Math.cos(rad);
+        const y = center + radius * Math.sin(rad);
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        const isCardinal = item.deg % 90 === 0;
+        btn.className = `compass-btn border shadow-sm ${
+          isCardinal
+            ? 'bg-emerald-50 hover:bg-emerald-500 hover:text-white dark:bg-emerald-950/90 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
+            : 'bg-white hover:bg-indigo-500 hover:text-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+        }`;
+        btn.style.left = `${x}px`;
+        btn.style.top = `${y}px`;
+        btn.textContent = item.text;
+        btn.onclick = () => growAtomInDirection(item.deg);
+        ring.appendChild(btn);
+      });
+    }
+
+    // --- 6. Mathematically Aligned Chemical Label & Bond Rendering Engine ---
+
+    /**
+     * Decompose a chemical label into:
+     *  - connectingChar: The element symbol that actually forms the valence bond (centered at atom.x, atom.y)
+     *  - restTokens: Array of { text, isSub } tokens that extend either to the right (default) or to the left (when bonded from the right)
+     */
+    function parseAnchoredChemicalLabel(atom, allBonds, allAtoms) {
+      const raw = String(atom.label || 'C').trim();
+
+      // Determine whether attached hydrogens/groups should extend to the LEFT ('left') or RIGHT ('right')
+      let dir = 'right';
+      if (atom.flipText === 'left') {
+        dir = 'left';
+      } else if (atom.flipText === 'right') {
+        dir = 'right';
+      } else {
+        // Automatic orientation based on incoming bonds!
+        // If the average neighbor X is significantly to the right of this atom (dx > 14), orient group to the left (e.g. HO—C, H3C—C, H2N—C)
+        const connectedBonds = allBonds.filter(b => b.from === atom.id || b.to === atom.id);
+        if (connectedBonds.length > 0) {
+          let sumDx = 0;
+          connectedBonds.forEach(b => {
+            const otherId = b.from === atom.id ? b.to : b.from;
+            const other = allAtoms.find(a => a.id === otherId);
+            if (other) sumDx += (other.x - atom.x);
+          });
+          if (sumDx > 16 && ['OH', 'CH3', 'NH2', 'NH3', 'SH', 'H2O'].includes(raw)) {
+            dir = 'left';
+          }
+        }
+      }
+
+      // Multi-atom functional groups with known connecting atom:
+      const groupDefs = {
+        'OH':    { center: 'O', suffix: [{ t: 'H', sub: false }] },
+        'HO':    { center: 'O', suffix: [{ t: 'H', sub: false }], forceLeft: true },
+        'CH3':   { center: 'C', suffix: [{ t: 'H', sub: false }, { t: '3', sub: true }] },
+        'H3C':   { center: 'C', suffix: [{ t: 'H', sub: false }, { t: '3', sub: true }], forceLeft: true },
+        'NH2':   { center: 'N', suffix: [{ t: 'H', sub: false }, { t: '2', sub: true }] },
+        'H2N':   { center: 'N', suffix: [{ t: 'H', sub: false }, { t: '2', sub: true }], forceLeft: true },
+        'NH3':   { center: 'N', suffix: [{ t: 'H', sub: false }, { t: '3', sub: true }] },
+        'H2O':   { center: 'O', suffix: [{ t: 'H', sub: false }, { t: '2', sub: true }] },
+        'COOH':  { center: 'C', suffix: [{ t: 'OOH', sub: false }] },
+        'CHO':   { center: 'C', suffix: [{ t: 'HO', sub: false }] },
+        'CH2OH': { center: 'C', suffix: [{ t: 'H', sub: false }, { t: '2', sub: true }, { t: 'OH', sub: false }] },
+        'NO2':   { center: 'N', suffix: [{ t: 'O', sub: false }, { t: '2', sub: true }] },
+        'SO3H':  { center: 'S', suffix: [{ t: 'O', sub: false }, { t: '3', sub: true }, { t: 'H', sub: false }] },
+        'CN':    { center: 'C', suffix: [{ t: 'N', sub: false }] },
+        'SH':    { center: 'S', suffix: [{ t: 'H', sub: false }] }
+      };
+
+      if (groupDefs[raw]) {
+        const def = groupDefs[raw];
+        return {
+          centerText: def.center,
+          suffixTokens: def.suffix,
+          direction: def.forceLeft ? 'left' : dir
+        };
+      }
+
+      // Single 1-or-2 letter element (C, H, O, N, Cl, Br, Cu, Na, Fe, etc.) -> Entire symbol centered at (atom.x, atom.y)
+      if (/^[A-Z][a-z]?$/.test(raw)) {
+        return { centerText: raw, suffixTokens: [], direction: 'right' };
+      }
+
+      // Generic fallback for custom formulas (e.g. C2H5, C6H5): anchor first element symbol at center
+      const match = raw.match(/^([A-Z][a-z]?)(.*)$/);
+      if (match) {
+        const centerSym = match[1];
+        const rem = match[2];
+        const parts = rem.split(/(\d+)/).filter(Boolean).map(p => ({
+          t: p,
+          sub: /^\d+$/.test(p)
+        }));
+        return { centerText: centerSym, suffixTokens: parts, direction: dir };
+      }
+
+      return { centerText: raw, suffixTokens: [], direction: 'right' };
+    }
+
+    /**
+     * Compute exact bond trim distance from `(atom.x, atom.y)` along unit vector `(ux, uy)`
+     * so the bond line stops cleanly with uniform whitespace around the atom text.
+     */
+    function computeDirectionalTrim(atom, ux, uy, allBonds, allAtoms) {
+      if (atom.hideLabel) return 0;
+
+      const parsed = parseAnchoredChemicalLabel(atom, allBonds, allAtoms);
+      // Base radius around the centered connecting atom (e.g., 'C', 'O', 'N', 'Cl')
+      const baseRx = parsed.centerText.length > 1 ? 18.5 : 14.5;
+      const baseRy = 15.5;
+
+      // Elliptical radius for the center symbol itself
+      let r = 1 / Math.hypot(ux / baseRx, uy / baseRy);
+
+      // If this atom has suffix characters (like H in OH) extending in the SAME direction as the bond vector,
+      // add clearance so the bond doesn't collide with the suffix text.
+      if (parsed.suffixTokens.length > 0) {
+        const suffixWidth = parsed.suffixTokens.reduce((w, tok) => w + (tok.sub ? tok.t.length * 9.5 : tok.t.length * 14.5), 0);
+        if (parsed.direction === 'right' && ux > 0.55) {
+          r += suffixWidth * ux;
+        } else if (parsed.direction === 'left' && ux < -0.55) {
+          r += suffixWidth * (-ux);
+        }
+      }
+
+      // If atom has Lewis electrons on that cardinal side, add clearance
+      if (atom.electrons) {
+        if (uy < -0.7 && atom.electrons.top && atom.electrons.top !== 'none') r = Math.max(r, 29);
+        if (uy > 0.7 && atom.electrons.bottom && atom.electrons.bottom !== 'none') r = Math.max(r, 29);
+        if (ux < -0.7 && atom.electrons.left && atom.electrons.left !== 'none') r = Math.max(r, 29);
+        if (ux > 0.7 && atom.electrons.right && atom.electrons.right !== 'none') r = Math.max(r, 29);
+      }
+
+      return r;
+    }
+
+    // --- 7. Main SVG Scene Renderer ---
+    function renderScene() {
+      const bracketsLayer = document.getElementById('brackets-layer');
+      const decorationsLayer = document.getElementById('decorations-layer');
+      const bondsLayer = document.getElementById('bonds-layer');
+      const atomsLayer = document.getElementById('atoms-layer');
+      const interactionLayer = document.getElementById('interaction-layer');
+
+      const svgEl = document.getElementById('editor-svg');
+      svgEl.setAttribute('viewBox', `${state.viewBox.x} ${state.viewBox.y} ${state.viewBox.w} ${state.viewBox.h}`);
+
+      const isDarkUI = document.documentElement.classList.contains('dark');
+      const defaultStrokeColor = isDarkUI ? '#f8fafc' : '#0f172a';
+
+      bracketsLayer.innerHTML = '';
+      decorationsLayer.innerHTML = '';
+      bondsLayer.innerHTML = '';
+      atomsLayer.innerHTML = '';
+      interactionLayer.innerHTML = '';
+
+      // 1. Render Aromatic Circle Decorations
+      state.scene.decorations.forEach(dec => {
+        if (dec.type === 'aromatic_circle' && dec.atomIds && dec.atomIds.length >= 3) {
+          const ringAtoms = dec.atomIds.map(id => state.scene.atoms.find(a => a.id === id)).filter(Boolean);
+          if (ringAtoms.length >= 3) {
+            const cx = ringAtoms.reduce((s, a) => s + a.x, 0) / ringAtoms.length;
+            const cy = ringAtoms.reduce((s, a) => s + a.y, 0) / ringAtoms.length;
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', cx);
+            circle.setAttribute('cy', cy);
+            circle.setAttribute('r', dec.radius || 30);
+            circle.setAttribute('fill', 'none');
+            circle.setAttribute('stroke', dec.color === 'default' || !dec.color ? defaultStrokeColor : dec.color);
+            circle.setAttribute('stroke-width', '2.6');
+            decorationsLayer.appendChild(circle);
+          }
+        }
+      });
+
+      // 2. Render Bonds (Using exact connecting-atom center alignment)
+      state.scene.bonds.forEach(bond => {
+        const a1 = state.scene.atoms.find(a => a.id === bond.from);
+        const a2 = state.scene.atoms.find(a => a.id === bond.to);
+        if (!a1 || !a2) return;
+
+        const isSelected = state.selectedBondId === bond.id;
+        const strokeColor = bond.color && bond.color !== 'default' ? bond.color : defaultStrokeColor;
+        const g = createBondSvgGroup(a1, a2, bond, strokeColor, isSelected, true);
+
+        g.addEventListener('pointerdown', (e) => {
+          e.stopPropagation();
+          onBondClicked(bond.id);
+        });
+        bondsLayer.appendChild(g);
+      });
+
+      // Active Dragging Bond Preview Line
+      if (state.bondDragStartAtomId && state.bondDragCurrentPos) {
+        const startAtom = state.scene.atoms.find(a => a.id === state.bondDragStartAtomId);
+        if (startAtom) {
+          const tempLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          tempLine.setAttribute('x1', startAtom.x);
+          tempLine.setAttribute('y1', startAtom.y);
+          tempLine.setAttribute('x2', state.bondDragCurrentPos.x);
+          tempLine.setAttribute('y2', state.bondDragCurrentPos.y);
+          tempLine.setAttribute('stroke', '#10b981');
+          tempLine.setAttribute('stroke-width', '3');
+          tempLine.setAttribute('stroke-dasharray', '6,4');
+          interactionLayer.appendChild(tempLine);
+        }
+      }
+
+      // 3. Render Ion Brackets [ ... ]^charge
+      state.scene.brackets.forEach(br => {
+        const g = createBracketSvgGroup(br, state.scene.atoms, defaultStrokeColor);
+        if (g) bracketsLayer.appendChild(g);
+      });
+
+      // 4. Render Atoms & Lewis Electron Dots
+      state.scene.atoms.forEach(atom => {
+        const isSelected = state.selectedAtomIds.includes(atom.id);
+        const atomColor = atom.color && atom.color !== 'default' ? atom.color : defaultStrokeColor;
+        const g = createAtomSvgGroup(atom, atomColor, isSelected, true);
+
+        g.addEventListener('pointerdown', (e) => {
+          e.stopPropagation();
+          onAtomPointerDown(e, atom);
+        });
+
+        atomsLayer.appendChild(g);
+      });
+
+      // 5. Render Intuitive On-Canvas "+" Sprout Handles around selected atom!
+      if (state.showSproutGuides && state.toolMode === 'select' && state.selectedAtomIds.length === 1 && !state.isDraggingAtom) {
+        const selAtom = state.scene.atoms.find(a => a.id === state.selectedAtomIds[0]);
+        if (selAtom) {
+          renderOnCanvasSproutRing(selAtom, interactionLayer);
+        }
+      }
+
+      updateInspectorUI();
+      scheduleExportPreviewUpdate();
+    }
+
+    /**
+     * Render interactive "+" sprout handles directly around the selected atom on the SVG canvas.
+     * Tapping a handle immediately adds a bond + activeElement at that exact angle!
+     */
+    function renderOnCanvasSproutRing(atom, layer) {
+      const sproutDist = getPreferredBondLength(atom.label, state.activeElement);
+      // Key chemistry angles: 0, 30, 60, 90, 120, 150, 180, -150, -120, -90, -60, -30
+      const angles = [-90, -60, -30, 0, 30, 60, 90, 120, 150, 180, -150, -120];
+
+      angles.forEach(deg => {
+        const rad = (deg * Math.PI) / 180;
+        const tx = Math.round(atom.x + sproutDist * Math.cos(rad));
+        const ty = Math.round(atom.y + sproutDist * Math.sin(rad));
+
+        // Skip if there is already a bonded neighbor in this exact direction (within ~22 degrees)
+        const hasBondInDir = state.scene.bonds.some(b => {
+          if (b.from !== atom.id && b.to !== atom.id) return false;
+          const otherId = b.from === atom.id ? b.to : b.from;
+          const other = state.scene.atoms.find(a => a.id === otherId);
+          if (!other) return false;
+          const bDeg = (Math.atan2(other.y - atom.y, other.x - atom.x) * 180) / Math.PI;
+          let diff = Math.abs(bDeg - deg) % 360;
+          if (diff > 180) diff = 360 - diff;
+          return diff < 21;
+        });
+        if (hasBondInDir) return;
+
+        // Emphasize cardinal (90°) and 30°/60°/120° organic angles
+        const isPrimaryAngle = (deg % 90 === 0) || (Math.abs(deg) === 30) || (Math.abs(deg) === 60) || (Math.abs(deg) === 120) || (Math.abs(deg) === 150);
+        const handleRadius = deg % 90 === 0 ? 11 : 9.5;
+
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'sprout-handle');
+        g.style.cursor = 'pointer';
+
+        // Guide dashed stem line
+        const stem = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        const startR = atom.hideLabel ? 6 : 20;
+        stem.setAttribute('x1', atom.x + Math.cos(rad) * startR);
+        stem.setAttribute('y1', atom.y + Math.sin(rad) * startR);
+        stem.setAttribute('x2', tx - Math.cos(rad) * handleRadius);
+        stem.setAttribute('y2', ty - Math.sin(rad) * handleRadius);
+        stem.setAttribute('stroke', deg % 90 === 0 ? '#10b981' : '#94a3b8');
+        stem.setAttribute('stroke-width', '1.4');
+        stem.setAttribute('stroke-dasharray', '3,3');
+        stem.setAttribute('opacity', deg % 90 === 0 ? '0.65' : '0.38');
+        g.appendChild(stem);
+
+        // Circle button
+        const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        c.setAttribute('cx', tx);
+        c.setAttribute('cy', ty);
+        c.setAttribute('r', handleRadius);
+        c.setAttribute('fill', deg % 90 === 0 ? '#ecfdf5' : '#f8fafc');
+        c.setAttribute('stroke', deg % 90 === 0 ? '#10b981' : '#64748b');
+        c.setAttribute('stroke-width', deg % 90 === 0 ? '2' : '1.5');
+        c.setAttribute('opacity', isPrimaryAngle ? '0.92' : '0.65');
+        g.appendChild(c);
+
+        // "+" cross lines inside circle
+        const arm = handleRadius * 0.45;
+        const pH = makeSvgLine(tx - arm, ty, tx + arm, ty, deg % 90 === 0 ? '#059669' : '#475569', 2);
+        const pV = makeSvgLine(tx, ty - arm, tx, ty + arm, deg % 90 === 0 ? '#059669' : '#475569', 2);
+        g.appendChild(pH);
+        g.appendChild(pV);
+
+        // Invisible larger touch target for iPad
+        const hit = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        hit.setAttribute('cx', tx);
+        hit.setAttribute('cy', ty);
+        hit.setAttribute('r', '16');
+        hit.setAttribute('fill', 'transparent');
+        g.appendChild(hit);
+
+        g.addEventListener('pointerdown', (e) => {
+          e.stopPropagation();
+          growAtomInDirection(deg);
+        });
+
+        layer.appendChild(g);
+      });
+    }
+
+    // Create SVG elements for a Bond between atom a1 and atom a2
+    function createBondSvgGroup(a1, a2, bond, strokeColor, isSelected, includeHitArea) {
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.style.cursor = 'pointer';
+
+      const dx = a2.x - a1.x;
+      const dy = a2.y - a1.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      const ux = dx / dist;
+      const uy = dy / dist;
+      // Normal perpendicular unit vector
+      const nx = -uy;
+      const ny = ux;
+
+      // Exact directional trim from the center of each connecting atom!
+      const trimStart = computeDirectionalTrim(a1, ux, uy, state.scene.bonds, state.scene.atoms);
+      const trimEnd = computeDirectionalTrim(a2, -ux, -uy, state.scene.bonds, state.scene.atoms);
+
+      const x1 = a1.x + ux * trimStart;
+      const y1 = a1.y + uy * trimStart;
+      const x2 = a2.x - ux * trimEnd;
+      const y2 = a2.y - uy * trimEnd;
+
+      // Selection highlight glow
+      if (isSelected) {
+        const hl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        hl.setAttribute('x1', x1);
+        hl.setAttribute('y1', y1);
+        hl.setAttribute('x2', x2);
+        hl.setAttribute('y2', y2);
+        hl.setAttribute('stroke', '#10b981');
+        hl.setAttribute('stroke-width', '13');
+        hl.setAttribute('stroke-linecap', 'round');
+        hl.setAttribute('opacity', '0.32');
+        g.appendChild(hl);
+      }
+
+      const strokeW = 2.8;
+
+      if (bond.type === 'single') {
+        g.appendChild(makeSvgLine(x1, y1, x2, y2, strokeColor, strokeW));
+      } else if (bond.type === 'double') {
+        // Check if BOTH endpoints are hidden skeletal carbons (e.g. skeletal benzene ring)
+        if (a1.hideLabel && a2.hideLabel) {
+          // Draw main outer edge on axis, and inset inner double bond toward ring centroid
+          g.appendChild(makeSvgLine(x1, y1, x2, y2, strokeColor, strokeW));
+          const insetSep = 6.5;
+          const shorten = 6.5;
+          // Determine which side (+n or -n) points toward the center of the molecule
+          const midX = (a1.x + a2.x) / 2;
+          const midY = (a1.y + a2.y) / 2;
+          const molCenter = getMoleculeCentroid();
+          const dot = (molCenter.x - midX) * nx + (molCenter.y - midY) * ny;
+          const sign = dot >= 0 ? 1 : -1;
+
+          const ix1 = x1 + ux * shorten + nx * insetSep * sign;
+          const iy1 = y1 + uy * shorten + ny * insetSep * sign;
+          const ix2 = x2 - ux * shorten + nx * insetSep * sign;
+          const iy2 = y2 - uy * shorten + ny * insetSep * sign;
+          g.appendChild(makeSvgLine(ix1, iy1, ix2, iy2, strokeColor, strokeW));
+        } else {
+          // Strictly symmetric parallel double bond centered on the atom-to-atom axis!
+          const halfSep = 3.3;
+          g.appendChild(makeSvgLine(x1 + nx * halfSep, y1 + ny * halfSep, x2 + nx * halfSep, y2 + ny * halfSep, strokeColor, strokeW));
+          g.appendChild(makeSvgLine(x1 - nx * halfSep, y1 - ny * halfSep, x2 - nx * halfSep, y2 - ny * halfSep, strokeColor, strokeW));
+        }
+      } else if (bond.type === 'triple') {
+        const sep = 5.8;
+        g.appendChild(makeSvgLine(x1, y1, x2, y2, strokeColor, strokeW));
+        g.appendChild(makeSvgLine(x1 + nx * sep, y1 + ny * sep, x2 + nx * sep, y2 + ny * sep, strokeColor, strokeW));
+        g.appendChild(makeSvgLine(x1 - nx * sep, y1 - ny * sep, x2 - nx * sep, y2 - ny * sep, strokeColor, strokeW));
+      } else if (bond.type === 'dashed') {
+        const line = makeSvgLine(x1, y1, x2, y2, strokeColor, strokeW);
+        line.setAttribute('stroke-dasharray', '5,5');
+        g.appendChild(line);
+      } else if (bond.type === 'coord' || bond.type === 'coord_rev') {
+        const sx = bond.type === 'coord' ? x1 : x2;
+        const sy = bond.type === 'coord' ? y1 : y2;
+        const ex = bond.type === 'coord' ? x2 : x1;
+        const ey = bond.type === 'coord' ? y2 : y1;
+        const dirX = bond.type === 'coord' ? ux : -ux;
+        const dirY = bond.type === 'coord' ? uy : -uy;
+
+        const arrowLen = 10.5;
+        const arrowWing = 5.2;
+        const lineEndX = ex - dirX * (arrowLen * 0.55);
+        const lineEndY = ey - dirY * (arrowLen * 0.55);
+
+        g.appendChild(makeSvgLine(sx, sy, lineEndX, lineEndY, strokeColor, strokeW));
+
+        const p1x = ex;
+        const p1y = ey;
+        const p2x = ex - dirX * arrowLen + nx * arrowWing;
+        const p2y = ey - dirY * arrowLen + ny * arrowWing;
+        const p3x = ex - dirX * arrowLen - nx * arrowWing;
+        const p3y = ey - dirY * arrowLen - ny * arrowWing;
+
+        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        poly.setAttribute('points', `${p1x},${p1y} ${p2x},${p2y} ${p3x},${p3y}`);
+        poly.setAttribute('fill', strokeColor);
+        g.appendChild(poly);
+      } else if (bond.type === 'wedge') {
+        const halfW = 5.8;
+        const p1 = `${x1},${y1}`;
+        const p2 = `${x2 + nx * halfW},${y2 + ny * halfW}`;
+        const p3 = `${x2 - nx * halfW},${y2 - ny * halfW}`;
+        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        poly.setAttribute('points', `${p1} ${p2} ${p3}`);
+        poly.setAttribute('fill', strokeColor);
+        g.appendChild(poly);
+      } else if (bond.type === 'hatch') {
+        const steps = 6;
+        const maxHalfW = 5.8;
+        for (let i = 1; i <= steps; i++) {
+          const t = i / steps;
+          const cx = x1 + (x2 - x1) * t;
+          const cy = y1 + (y2 - y1) * t;
+          const hw = maxHalfW * t;
+          g.appendChild(makeSvgLine(cx + nx * hw, cy + ny * hw, cx - nx * hw, cy - ny * hw, strokeColor, 2.3));
+        }
+      }
+
+      if (includeHitArea) {
+        const hit = makeSvgLine(x1, y1, x2, y2, 'transparent', 18);
+        g.appendChild(hit);
+      }
+
+      return g;
+    }
+
+    function getMoleculeCentroid() {
+      if (state.scene.atoms.length === 0) return { x: 400, y: 250 };
+      const sx = state.scene.atoms.reduce((s, a) => s + a.x, 0);
+      const sy = state.scene.atoms.reduce((s, a) => s + a.y, 0);
+      return { x: sx / state.scene.atoms.length, y: sy / state.scene.atoms.length };
+    }
+
+    function makeSvgLine(x1, y1, x2, y2, stroke, width) {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', x1);
+      line.setAttribute('y1', y1);
+      line.setAttribute('x2', x2);
+      line.setAttribute('y2', y2);
+      line.setAttribute('stroke', stroke);
+      line.setAttribute('stroke-width', width);
+      line.setAttribute('stroke-linecap', 'round');
+      return line;
+    }
+
+    /**
+     * Create SVG elements for an Atom using Connecting-Atom Center Anchoring & Exact Cap-Height Optical Centering!
+     * This guarantees 0px vertical or horizontal bond drift across Safari, iPad, and Chrome.
+     */
+    function createAtomSvgGroup(atom, atomColor, isSelected, isEditor) {
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.style.cursor = 'pointer';
+
+      // Editor selection highlight ring centered on (atom.x, atom.y)
+      if (isEditor && isSelected) {
+        const selCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        selCircle.setAttribute('cx', atom.x);
+        selCircle.setAttribute('cy', atom.y);
+        selCircle.setAttribute('r', '21');
+        selCircle.setAttribute('fill', 'rgba(16, 185, 129, 0.14)');
+        selCircle.setAttribute('stroke', '#10b981');
+        selCircle.setAttribute('stroke-width', '2');
+        selCircle.setAttribute('stroke-dasharray', '4,3');
+        g.appendChild(selCircle);
+      }
+
+      const FS = 24; // Main element font size
+      const SUB_FS = 16; // Subscript font size
+      // Exact optical cap-height baseline offset so capital letters ('C', 'H', 'O', 'N') sit dead-center on atom.y
+      const baselineY = atom.y + FS * 0.355;
+      const subBaselineY = baselineY + 5;
+      const fontFamily = "Inter, 'Hiragino Sans', 'Noto Sans JP', sans-serif";
+
+      if (!atom.hideLabel) {
+        const parsed = parseAnchoredChemicalLabel(atom, state.scene.bonds, state.scene.atoms);
+
+        // 1. Render the connecting atom symbol DEAD-CENTER at (atom.x, atom.y)
+        const centerTextEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        centerTextEl.setAttribute('x', atom.x);
+        centerTextEl.setAttribute('y', baselineY);
+        centerTextEl.setAttribute('text-anchor', 'middle');
+        centerTextEl.setAttribute('fill', atomColor);
+        centerTextEl.setAttribute('font-family', fontFamily);
+        centerTextEl.setAttribute('font-size', FS);
+        centerTextEl.setAttribute('font-weight', '700');
+        centerTextEl.textContent = parsed.centerText;
+        g.appendChild(centerTextEl);
+
+        // 2. Render any attached suffix tokens (e.g. 'H' in OH, 'H₃' in CH₃, 'OOH' in COOH) without shifting the connecting atom!
+        if (parsed.suffixTokens.length > 0) {
+          const centerHalfW = parsed.centerText.length > 1 ? 15 : 9.2;
+
+          if (parsed.direction === 'right') {
+            let cursorX = atom.x + centerHalfW + 1;
+            parsed.suffixTokens.forEach(tok => {
+              const tEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+              tEl.setAttribute('x', cursorX);
+              tEl.setAttribute('y', tok.sub ? subBaselineY : baselineY);
+              tEl.setAttribute('text-anchor', 'start');
+              tEl.setAttribute('fill', atomColor);
+              tEl.setAttribute('font-family', fontFamily);
+              tEl.setAttribute('font-size', tok.sub ? SUB_FS : FS);
+              tEl.setAttribute('font-weight', '700');
+              tEl.textContent = tok.t;
+              g.appendChild(tEl);
+              cursorX += tok.t.length * (tok.sub ? 9.8 : 15.8);
+            });
+          } else {
+            // Extend to the LEFT (e.g., HO—, H₃C—, H₂N—) so the bond from the right hits C/O/N directly!
+            const totalSuffixW = parsed.suffixTokens.reduce(
+              (w, tok) => w + tok.t.length * (tok.sub ? 9.8 : 15.8),
+              0
+            );
+            let cursorX = atom.x - centerHalfW - 1 - totalSuffixW;
+            parsed.suffixTokens.forEach(tok => {
+              const tEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+              tEl.setAttribute('x', cursorX);
+              tEl.setAttribute('y', tok.sub ? subBaselineY : baselineY);
+              tEl.setAttribute('text-anchor', 'start');
+              tEl.setAttribute('fill', atomColor);
+              tEl.setAttribute('font-family', fontFamily);
+              tEl.setAttribute('font-size', tok.sub ? SUB_FS : FS);
+              tEl.setAttribute('font-weight', '700');
+              tEl.textContent = tok.t;
+              g.appendChild(tEl);
+              cursorX += tok.t.length * (tok.sub ? 9.8 : 15.8);
+            });
+          }
+        }
+      } else if (isEditor) {
+        // Subtle vertex handle in editor for hidden skeletal carbons
+        const vDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        vDot.setAttribute('cx', atom.x);
+        vDot.setAttribute('cy', atom.y);
+        vDot.setAttribute('r', isSelected ? '5' : '3.5');
+        vDot.setAttribute('fill', isSelected ? '#10b981' : '#94a3b8');
+        vDot.setAttribute('opacity', '0.65');
+        g.appendChild(vDot);
+      }
+
+      // Render Charge Superscript on Atom (e.g., +, -, 2+, δ+)
+      if (atom.charge) {
+        const chText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        const offsetX = 14;
+        chText.setAttribute('x', atom.x + offsetX);
+        chText.setAttribute('y', atom.y - 8);
+        chText.setAttribute('text-anchor', 'start');
+        chText.setAttribute('fill', atomColor);
+        chText.setAttribute('font-family', fontFamily);
+        chText.setAttribute('font-size', '15');
+        chText.setAttribute('font-weight', '700');
+        chText.textContent = atom.charge.replace('-', '−');
+        g.appendChild(chText);
+      }
+
+      // Render 4-Directional Lewis Electron Dots (top, right, bottom, left)
+      if (atom.electrons) {
+        const eDist = 21.5; // Distance from atom center to electron pair center
+        const sides = [
+          { side: 'top',    cx: atom.x, cy: atom.y - eDist, isHorizontalPair: true },
+          { side: 'bottom', cx: atom.x, cy: atom.y + eDist, isHorizontalPair: true },
+          { side: 'left',   cx: atom.x - eDist, cy: atom.y, isHorizontalPair: false },
+          { side: 'right',  cx: atom.x + eDist, cy: atom.y, isHorizontalPair: false }
+        ];
+
+        sides.forEach(s => {
+          const eType = atom.electrons[s.side];
+          if (!eType || eType === 'none') return;
+          const eGroup = createElectronDotsSvg(s.cx, s.cy, eType, s.isHorizontalPair, atomColor);
+          g.appendChild(eGroup);
+        });
+      }
+
+      // Invisible touch hit area for easy iPad tapping
+      if (isEditor) {
+        const hitCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        hitCircle.setAttribute('cx', atom.x);
+        hitCircle.setAttribute('cy', atom.y);
+        hitCircle.setAttribute('r', '22');
+        hitCircle.setAttribute('fill', 'transparent');
+        g.appendChild(hitCircle);
+      }
+
+      return g;
+    }
+
+    // Render Lewis Electron Dots
+    function createElectronDotsSvg(cx, cy, eType, isHorizontalPair, color) {
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const rFilled = 3.1;
+      const rOpen = 3.0;
+      const pairHalfGap = 5.2;
+      const rowHalfGap = 4.4;
+
+      const makeFilledDot = (x, y) => {
+        const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        c.setAttribute('cx', x);
+        c.setAttribute('cy', y);
+        c.setAttribute('r', rFilled);
+        c.setAttribute('fill', color);
+        return c;
+      };
+
+      const makeOpenDot = (x, y) => {
+        const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        c.setAttribute('cx', x);
+        c.setAttribute('cy', y);
+        c.setAttribute('r', rOpen);
+        c.setAttribute('fill', 'none');
+        c.setAttribute('stroke', color);
+        c.setAttribute('stroke-width', '1.8');
+        return c;
+      };
+
+      const getPairCoords = (centerX, centerY) => {
+        if (isHorizontalPair) {
+          return [
+            { x: centerX - pairHalfGap, y: centerY },
+            { x: centerX + pairHalfGap, y: centerY }
+          ];
+        } else {
+          return [
+            { x: centerX, y: centerY - pairHalfGap },
+            { x: centerX, y: centerY + pairHalfGap }
+          ];
+        }
+      };
+
+      if (eType === 'dot1') {
+        g.appendChild(makeFilledDot(cx, cy));
+      } else if (eType === 'open1') {
+        g.appendChild(makeOpenDot(cx, cy));
+      } else if (eType === 'dot2') {
+        const [p1, p2] = getPairCoords(cx, cy);
+        g.appendChild(makeFilledDot(p1.x, p1.y));
+        g.appendChild(makeFilledDot(p2.x, p2.y));
+      } else if (eType === 'open2') {
+        const [p1, p2] = getPairCoords(cx, cy);
+        g.appendChild(makeOpenDot(p1.x, p1.y));
+        g.appendChild(makeOpenDot(p2.x, p2.y));
+      } else if (eType === 'mix2') {
+        const [p1, p2] = getPairCoords(cx, cy);
+        g.appendChild(makeFilledDot(p1.x, p1.y));
+        g.appendChild(makeOpenDot(p2.x, p2.y));
+      } else if (eType === 'dot4') {
+        const offsets = [-rowHalfGap, rowHalfGap];
+        offsets.forEach(d1 => {
+          offsets.forEach(d2 => {
+            g.appendChild(makeFilledDot(cx + d1, cy + d2));
+          });
+        });
+      } else if (eType === 'dot6') {
+        const colOffsets = [-rowHalfGap, rowHalfGap];
+        const rowOffsets = [-7.0, 0, 7.0];
+        colOffsets.forEach(dx => {
+          rowOffsets.forEach(dy => {
+            g.appendChild(makeFilledDot(cx + dx, cy + dy));
+          });
+        });
+      }
+
+      return g;
+    }
+
+    // Create SVG Group for Square Ion Brackets `[ ... ]^n±`
+    function createBracketSvgGroup(bracket, allAtoms, strokeColor) {
+      const targetAtoms = bracket.atomIds && bracket.atomIds.length > 0
+        ? allAtoms.filter(a => bracket.atomIds.includes(a.id))
+        : allAtoms;
+
+      if (targetAtoms.length === 0) return null;
+
+      const bbox = computeAtomsTightBox(targetAtoms);
+      const pad = bracket.padding || 24;
+      const minX = bbox.minX - pad;
+      const maxX = bbox.maxX + pad;
+      const minY = bbox.minY - pad;
+      const maxY = bbox.maxY + pad;
+      const lip = Math.min(14, Math.max(8, (maxY - minY) * 0.12));
+
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+      const leftPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      leftPath.setAttribute('d', `M ${minX + lip} ${minY} L ${minX} ${minY} L ${minX} ${maxY} L ${minX + lip} ${maxY}`);
+      leftPath.setAttribute('fill', 'none');
+      leftPath.setAttribute('stroke', strokeColor);
+      leftPath.setAttribute('stroke-width', '2.6');
+      leftPath.setAttribute('stroke-linecap', 'square');
+      g.appendChild(leftPath);
+
+      const rightPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      rightPath.setAttribute('d', `M ${maxX - lip} ${minY} L ${maxX} ${minY} L ${maxX} ${maxY} L ${maxX - lip} ${maxY}`);
+      rightPath.setAttribute('fill', 'none');
+      rightPath.setAttribute('stroke', strokeColor);
+      rightPath.setAttribute('stroke-width', '2.6');
+      rightPath.setAttribute('stroke-linecap', 'square');
+      g.appendChild(rightPath);
+
+      if (bracket.charge) {
+        const chText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        chText.setAttribute('x', maxX + 6);
+        chText.setAttribute('y', minY + 12);
+        chText.setAttribute('text-anchor', 'start');
+        chText.setAttribute('fill', strokeColor);
+        chText.setAttribute('font-family', "Inter, 'Hiragino Sans', sans-serif");
+        chText.setAttribute('font-size', '19');
+        chText.setAttribute('font-weight', '700');
+        chText.textContent = bracket.charge.replace('-', '−');
+        g.appendChild(chText);
+      }
+
+      return g;
+    }
+
+    function computeAtomsTightBox(atomsList) {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      atomsList.forEach(a => {
+        const parsed = parseAnchoredChemicalLabel(a, state.scene.bonds, state.scene.atoms);
+        const suffixW = parsed.suffixTokens.reduce((w, t) => w + t.t.length * 15, 0);
+        const leftW = a.hideLabel ? 8 : 18 + (parsed.direction === 'left' ? suffixW : 0);
+        const rightW = a.hideLabel ? 8 : 18 + (parsed.direction === 'right' ? suffixW : 0) + (a.charge ? 18 : 0);
+        const halfH = a.hideLabel ? 8 : 18;
+
+        const topExtra = a.electrons && a.electrons.top !== 'none' ? 16 : 0;
+        const botExtra = a.electrons && a.electrons.bottom !== 'none' ? 16 : 0;
+        const leftExtra = a.electrons && a.electrons.left !== 'none' ? 16 : 0;
+        const rightExtra = a.electrons && a.electrons.right !== 'none' ? 16 : 0;
+
+        minX = Math.min(minX, a.x - leftW - leftExtra);
+        maxX = Math.max(maxX, a.x + rightW + rightExtra);
+        minY = Math.min(minY, a.y - halfH - topExtra);
+        maxY = Math.max(maxY, a.y + halfH + botExtra);
+      });
+      return { minX, minY, maxX, maxY };
+    }
+
+    // --- 8. Canvas Pointer Interaction & Smart Alignment ---
+    function setupCanvasEvents() {
+      const svgEl = document.getElementById('editor-svg');
+
+      svgEl.addEventListener('pointerdown', (e) => {
+        const pt = clientToSvgCoords(e.clientX, e.clientY);
+
+        if (state.toolMode === 'atom') {
+          pushUndoState();
+          const newAtom = makeAtom(
+            'a_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+            Math.round(pt.x / 6) * 6,
+            Math.round(pt.y / 6) * 6,
+            state.activeElement
+          );
+          state.scene.atoms.push(newAtom);
+          state.selectedAtomIds = [newAtom.id];
+          state.selectedBondId = null;
+          renderScene();
+          return;
+        }
+
+        if (!state.multiSelect) {
+          state.selectedAtomIds = [];
+          state.selectedBondId = null;
+        }
+        state.isPanningCanvas = true;
+        state.dragStartClient = { x: e.clientX, y: e.clientY };
+        state.dragStartViewBox = { x: state.viewBox.x, y: state.viewBox.y };
+        renderScene();
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        if (state.isDraggingAtom && state.selectedAtomIds.length > 0) {
+          const clientDist = Math.hypot(e.clientX - state.dragStartClient.x, e.clientY - state.dragStartClient.y);
+          if (clientDist > 4) state.hasMovedDuringDrag = true;
+          if (!state.hasMovedDuringDrag) return;
+
+          const startSvg = clientToSvgCoords(state.dragStartClient.x, state.dragStartClient.y);
+          const currSvg = clientToSvgCoords(e.clientX, e.clientY);
+          const dx = currSvg.x - startSvg.x;
+          const dy = currSvg.y - startSvg.y;
+
+          state.scene.atoms.forEach(a => {
+            if (state.selectedAtomIds.includes(a.id) && state.dragAtomInitialPositions[a.id]) {
+              const initPos = state.dragAtomInitialPositions[a.id];
+              let nx = Math.round(initPos.x + dx);
+              let ny = Math.round(initPos.y + dy);
+
+              // Magnetic Axis Alignment with bonded neighbors!
+              // If dragging a single atom and its X or Y is within 5px of a bonded neighbor's X or Y, snap to exact 0°/90° alignment!
+              if (state.selectedAtomIds.length === 1) {
+                state.scene.bonds.forEach(b => {
+                  if (b.from === a.id || b.to === a.id) {
+                    const otherId = b.from === a.id ? b.to : b.from;
+                    const other = state.scene.atoms.find(x => x.id === otherId);
+                    if (other) {
+                      if (Math.abs(nx - other.x) <= 5) nx = other.x;
+                      if (Math.abs(ny - other.y) <= 5) ny = other.y;
+                    }
+                  }
+                });
+              }
+
+              a.x = nx;
+              a.y = ny;
+            }
+          });
+          renderScene();
+        } else if (state.bondDragStartAtomId) {
+          state.bondDragCurrentPos = clientToSvgCoords(e.clientX, e.clientY);
+          renderScene();
+        } else if (state.isPanningCanvas) {
+          const svgEl = document.getElementById('editor-svg');
+          const rect = svgEl.getBoundingClientRect();
+          const scaleX = state.viewBox.w / rect.width;
+          const scaleY = state.viewBox.h / rect.height;
+          const dx = (e.clientX - state.dragStartClient.x) * scaleX;
+          const dy = (e.clientY - state.dragStartClient.y) * scaleY;
+          state.viewBox.x = state.dragStartViewBox.x - dx;
+          state.viewBox.y = state.dragStartViewBox.y - dy;
+          svgEl.setAttribute('viewBox', `${state.viewBox.x} ${state.viewBox.y} ${state.viewBox.w} ${state.viewBox.h}`);
+        }
+      });
+
+      window.addEventListener('pointerup', (e) => {
+        if (state.bondDragStartAtomId) {
+          const pt = clientToSvgCoords(e.clientX, e.clientY);
+          const targetAtom = findNearestAtom(pt.x, pt.y, 30);
+          if (targetAtom && targetAtom.id !== state.bondDragStartAtomId) {
+            createOrToggleBondBetween(state.bondDragStartAtomId, targetAtom.id);
+          }
+          state.bondDragStartAtomId = null;
+          state.bondDragCurrentPos = null;
+          renderScene();
+        }
+        if (state.isDraggingAtom) {
+          state.isDraggingAtom = false;
+          state.hasMovedDuringDrag = false;
+          renderScene();
+        }
+        state.isPanningCanvas = false;
+      });
+    }
+
+    function onAtomPointerDown(e, atom) {
+      if (state.toolMode === 'eraser') {
+        pushUndoState();
+        removeAtomById(atom.id);
+        renderScene();
+        return;
+      }
+
+      if (state.toolMode === 'atom') {
+        pushUndoState();
+        atom.label = state.activeElement;
+        atom.hideLabel = false;
+        state.selectedAtomIds = [atom.id];
+        renderScene();
+        return;
+      }
+
+      if (state.toolMode === 'bond') {
+        if (state.selectedAtomIds.length === 1 && state.selectedAtomIds[0] !== atom.id) {
+          createOrToggleBondBetween(state.selectedAtomIds[0], atom.id);
+          state.selectedAtomIds = [atom.id];
+          renderScene();
+        } else {
+          state.selectedAtomIds = [atom.id];
+          state.bondDragStartAtomId = atom.id;
+          state.bondDragCurrentPos = { x: atom.x, y: atom.y };
+          renderScene();
+        }
+        return;
+      }
+
+      // Default 'select' mode: select atom and prepare drag
+      state.selectedBondId = null;
+      if (state.multiSelect || e.shiftKey) {
+        if (state.selectedAtomIds.includes(atom.id)) {
+          state.selectedAtomIds = state.selectedAtomIds.filter(id => id !== atom.id);
+        } else {
+          state.selectedAtomIds.push(atom.id);
+        }
+      } else {
+        state.selectedAtomIds = [atom.id];
+      }
+
+      pushUndoState();
+      state.isDraggingAtom = true;
+      state.hasMovedDuringDrag = false;
+      state.dragStartClient = { x: e.clientX, y: e.clientY };
+      state.dragAtomInitialPositions = {};
+      state.scene.atoms.forEach(a => {
+        if (state.selectedAtomIds.includes(a.id)) {
+          state.dragAtomInitialPositions[a.id] = { x: a.x, y: a.y };
+        }
+      });
+
+      renderScene();
+    }
+
+    // Tapping a bond in 'select' or 'bond' mode cycles single -> double -> triple -> coord!
+    function onBondClicked(bondId) {
+      const bond = state.scene.bonds.find(b => b.id === bondId);
+      if (!bond) return;
+
+      if (state.toolMode === 'eraser') {
+        pushUndoState();
+        state.scene.bonds = state.scene.bonds.filter(b => b.id !== bondId);
+        renderScene();
+        return;
+      }
+
+      pushUndoState();
+      const cycleOrder = ['single', 'double', 'triple', 'coord'];
+      if (state.selectedBondId === bondId) {
+        const idx = cycleOrder.indexOf(bond.type);
+        bond.type = cycleOrder[(idx + 1) % cycleOrder.length];
+      } else if (state.toolMode === 'bond') {
+        bond.type = state.activeBondType;
+      }
+
+      state.selectedBondId = bondId;
+      state.selectedAtomIds = [];
+      renderScene();
+    }
+
+    function createOrToggleBondBetween(atomId1, atomId2) {
+      pushUndoState();
+      const existing = state.scene.bonds.find(
+        b => (b.from === atomId1 && b.to === atomId2) || (b.from === atomId2 && b.to === atomId1)
+      );
+      if (existing) {
+        const order = ['single', 'double', 'triple', 'coord'];
+        const nextIdx = (order.indexOf(existing.type) + 1) % order.length;
+        existing.type = order[nextIdx];
+        state.selectedBondId = existing.id;
+      } else {
+        const newBond = makeBond(
+          'b_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+          atomId1,
+          atomId2,
+          state.activeBondType
+        );
+        state.scene.bonds.push(newBond);
+        state.selectedBondId = newBond.id;
+      }
+    }
+
+    function clientToSvgCoords(clientX, clientY) {
+      const svgEl = document.getElementById('editor-svg');
+      const rect = svgEl.getBoundingClientRect();
+      const relX = (clientX - rect.left) / rect.width;
+      const relY = (clientY - rect.top) / rect.height;
+      return {
+        x: state.viewBox.x + relX * state.viewBox.w,
+        y: state.viewBox.y + relY * state.viewBox.h
+      };
+    }
+
+    function findNearestAtom(x, y, maxDist = 26) {
+      let best = null;
+      let bestD = maxDist;
+      state.scene.atoms.forEach(a => {
+        const d = Math.hypot(a.x - x, a.y - y);
+        if (d < bestD) {
+          bestD = d;
+          best = a;
+        }
+      });
+      return best;
+    }
+
+    // --- 9. Smart Sprouting, Auto-Octet, Auto-Hydrogens & Bond Straightening ---
+    function getPreferredBondLength(parentLabel, newLabel) {
+      if (state.bondLengthMode === 'short') return 54;
+      if (state.bondLengthMode === 'standard') return 68;
+      // In 'auto' mode: C-H, O-H, N-H bonds are slightly more compact (56px) while C-C/C-O backbone bonds are 68px
+      if (newLabel === 'H' || parentLabel === 'H') return 56;
+      return 68;
+    }
+
+    function toggleSproutBehavior() {
+      state.sproutAdvanceSelection = !state.sproutAdvanceSelection;
+      const btn = document.getElementById('sprout-behavior-btn');
+      const chk = document.getElementById('auto-advance-selection');
+      if (chk) chk.checked = state.sproutAdvanceSelection;
+
+      if (state.sproutAdvanceSelection) {
+        btn.className = 'px-2.5 py-1.5 rounded-xl border-2 border-indigo-500 bg-indigo-50 dark:bg-indigo-950/70 text-indigo-800 dark:text-indigo-200 text-xs font-bold flex items-center gap-1.5 transition shadow-xs';
+        btn.innerHTML = '<i class="fa-solid fa-link text-indigo-600"></i><span id="sprout-behavior-label">＋動作: 新しい原子へ移動 (連続骨格モード)</span>';
+      } else {
+        btn.className = 'px-2.5 py-1.5 rounded-xl border-2 border-emerald-500/80 bg-emerald-50/70 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-200 text-xs font-bold flex items-center gap-1.5 transition shadow-xs';
+        btn.innerHTML = '<i class="fa-solid fa-code-branch text-emerald-600"></i><span id="sprout-behavior-label">＋動作: 親原子を維持 (H追加に最適)</span>';
+      }
+    }
+
+    function toggleSproutGuides() {
+      state.showSproutGuides = !state.showSproutGuides;
+      const btn = document.getElementById('sprout-guide-toggle-btn');
+      btn.innerHTML = `<span>＋ガイド: ${state.showSproutGuides ? 'ON' : 'OFF'}</span>`;
+      renderScene();
+    }
+
+    function toggleBondLengthPreset() {
+      const order = ['auto', 'standard', 'short'];
+      const labels = { auto: '結合長: 自動最適', standard: '結合長: 標準(68px)', short: '結合長: 短め(54px)' };
+      const next = order[(order.indexOf(state.bondLengthMode) + 1) % order.length];
+      state.bondLengthMode = next;
+      document.getElementById('bond-len-btn').textContent = labels[next];
+      renderScene();
+    }
+
+    function growAtomInDirection(angleDeg) {
+      let baseAtom = null;
+      if (state.selectedAtomIds.length > 0) {
+        baseAtom = state.scene.atoms.find(a => a.id === state.selectedAtomIds[state.selectedAtomIds.length - 1]);
+      } else if (state.scene.atoms.length > 0) {
+        baseAtom = state.scene.atoms[state.scene.atoms.length - 1];
+      }
+
+      pushUndoState();
+
+      if (!baseAtom) {
+        const firstAtom = makeAtom('a_' + Date.now(), 400, 250, state.activeElement);
+        state.scene.atoms.push(firstAtom);
+        state.selectedAtomIds = [firstAtom.id];
+        renderScene();
+        return;
+      }
+
+      const isLewisNoBondEl = document.getElementById('lewis-spacing-mode');
+      const isLewisNoBond = isLewisNoBondEl && isLewisNoBondEl.checked;
+      const bondLength = isLewisNoBond ? 50 : getPreferredBondLength(baseAtom.label, state.activeElement);
+      const rad = (angleDeg * Math.PI) / 180;
+
+      // Exact mathematical coordinates (snap to exact 0 for 0/90/180/270 deg!)
+      const cosVal = Math.abs(Math.cos(rad)) < 1e-9 ? 0 : Math.cos(rad);
+      const sinVal = Math.abs(Math.sin(rad)) < 1e-9 ? 0 : Math.sin(rad);
+      const targetX = Math.round(baseAtom.x + bondLength * cosVal);
+      const targetY = Math.round(baseAtom.y + bondLength * sinVal);
+
+      let targetAtom = findNearestAtom(targetX, targetY, 22);
+      if (!targetAtom) {
+        targetAtom = makeAtom(
+          'a_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+          targetX,
+          targetY,
+          state.activeElement
+        );
+        state.scene.atoms.push(targetAtom);
+      }
+
+      if (!isLewisNoBond && targetAtom.id !== baseAtom.id) {
+        const existingBond = state.scene.bonds.find(
+          b => (b.from === baseAtom.id && b.to === targetAtom.id) || (b.from === targetAtom.id && b.to === baseAtom.id)
+        );
+        if (!existingBond) {
+          state.scene.bonds.push(
+            makeBond('b_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), baseAtom.id, targetAtom.id, state.activeBondType)
+          );
+        }
+      }
+
+      if (state.sproutAdvanceSelection) {
+        state.selectedAtomIds = [targetAtom.id];
+      } else {
+        state.selectedAtomIds = [baseAtom.id];
+      }
+      renderScene();
+    }
+
+    // Automatically fill open cardinal directions (or 120° directions) around selected atom(s) with H
+    function autoFillHydrogensOnSelected() {
+      const targets = getTargetAtomsForEdit();
+      if (targets.length === 0) return;
+
+      const isLewisNoBondEl = document.getElementById('lewis-spacing-mode');
+      const isLewisNoBond = isLewisNoBondEl && isLewisNoBondEl.checked;
+      const dist = isLewisNoBond ? 50 : 56;
+      const cardinalDegs = [-90, 0, 90, 180];
+
+      pushUndoState();
+      targets.forEach(atom => {
+        cardinalDegs.forEach(deg => {
+          const rad = (deg * Math.PI) / 180;
+          const tx = Math.round(atom.x + dist * Math.cos(rad));
+          const ty = Math.round(atom.y + dist * Math.sin(rad));
+          const occupied = findNearestAtom(tx, ty, 28);
+          if (!occupied) {
+            const hAtom = makeAtom('h_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), tx, ty, 'H');
+            state.scene.atoms.push(hAtom);
+            if (!isLewisNoBond) {
+              state.scene.bonds.push(
+                makeBond('b_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), atom.id, hAtom.id, 'single')
+              );
+            }
+          }
+        });
+      });
+      renderScene();
+      showToast('空き方向に水素(H)を自動配置しました', 'success');
+    }
+
+    function addFourHydrogensAroundSelected() {
+      autoFillHydrogensOnSelected();
+    }
+
+    // Automatically fill lone pairs (••) around O, N, F, Cl, Br, I based on remaining open cardinal sides!
+    function autoCompleteOctetElectrons() {
+      const targets = state.selectedAtomIds.length > 0
+        ? state.scene.atoms.filter(a => state.selectedAtomIds.includes(a.id))
+        : state.scene.atoms;
+
+      if (targets.length === 0) return;
+
+      const lonePairCountByElem = { O: 2, S: 2, N: 1, P: 1, F: 3, Cl: 3, Br: 3, I: 3 };
+      const sideDefs = [
+        { side: 'top', deg: -90 },
+        { side: 'bottom', deg: 90 },
+        { side: 'left', deg: 180 },
+        { side: 'right', deg: 0 }
+      ];
+
+      pushUndoState();
+      let updatedCount = 0;
+
+      targets.forEach(atom => {
+        const neededPairs = lonePairCountByElem[atom.label];
+        if (!neededPairs) return;
+
+        if (!atom.electrons) atom.electrons = { top: 'none', right: 'none', bottom: 'none', left: 'none' };
+
+        // Find which cardinal sides do NOT have a bonded neighbor or adjacent atom
+        const freeSides = sideDefs.filter(sd => {
+          const rad = (sd.deg * Math.PI) / 180;
+          const checkX = atom.x + 55 * Math.cos(rad);
+          const checkY = atom.y + 55 * Math.sin(rad);
+          const neighbor = state.scene.atoms.find(other => other.id !== atom.id && Math.hypot(other.x - checkX, other.y - checkY) < 35);
+          return !neighbor && atom.electrons[sd.side] === 'none';
+        });
+
+        for (let i = 0; i < Math.min(neededPairs, freeSides.length); i++) {
+          atom.electrons[freeSides[i].side] = 'dot2';
+          updatedCount++;
+        }
+      });
+
+      renderScene();
+      if (updatedCount > 0) {
+        showToast('非共有電子対(••)を自動補完しました！', 'success');
+      } else {
+        showToast('N, O, F, Cl 等の原子を選択するか、右パネルから電子を設定してください', 'info');
+      }
+    }
+
+    function flipSelectedGroupOrientation() {
+      const targets = getTargetAtomsForEdit();
+      if (targets.length === 0) return;
+      pushUndoState();
+      targets.forEach(a => {
+        const parsed = parseAnchoredChemicalLabel(a, state.scene.bonds, state.scene.atoms);
+        a.flipText = parsed.direction === 'right' ? 'left' : 'right';
+      });
+      renderScene();
+      showToast('官能基の文字の向きを反転しました', 'info');
+    }
+
+    // Beautify / Straighten slightly tilted horizontal & vertical bonds
+    function straightenAllBonds() {
+      if (state.scene.bonds.length === 0) return;
+      pushUndoState();
+      state.scene.bonds.forEach(b => {
+        const a1 = state.scene.atoms.find(a => a.id === b.from);
+        const a2 = state.scene.atoms.find(a => a.id === b.to);
+        if (!a1 || !a2) return;
+        if (Math.abs(a1.x - a2.x) > 0 && Math.abs(a1.x - a2.x) <= 9) {
+          a2.x = a1.x;
+        }
+        if (Math.abs(a1.y - a2.y) > 0 && Math.abs(a1.y - a2.y) <= 9) {
+          a2.y = a1.y;
+        }
+      });
+      renderScene();
+      showToast('水平・垂直の価標のズレをピシッと補正しました！', 'success');
+    }
+
+    function centerAndFitMolecule() {
+      if (state.scene.atoms.length === 0) {
+        resetCamera();
+        return;
+      }
+      const bbox = computeAtomsTightBox(state.scene.atoms);
+      const cx = (bbox.minX + bbox.maxX) / 2;
+      const cy = (bbox.minY + bbox.maxY) / 2;
+      state.viewBox.w = 800;
+      state.viewBox.h = 500;
+      state.viewBox.x = Math.round(cx - 400);
+      state.viewBox.y = Math.round(cy - 250);
+      renderScene();
+    }
+
+    // --- 10. Inspector Actions (Lewis Electrons, Charges, Brackets, Stamps) ---
+    function switchInspectorTab(tabKey) {
+      ['lewis', 'compass', 'prop'].forEach(k => {
+        const btn = document.getElementById(`insp-tab-${k}`);
+        const panel = document.getElementById(`inspector-panel-${k}`);
+        if (k === tabKey) {
+          btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm flex items-center gap-1.5';
+          panel.classList.remove('hidden');
+          panel.classList.add('flex');
+        } else {
+          btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 flex items-center gap-1.5';
+          panel.classList.add('hidden');
+          panel.classList.remove('flex');
+        }
+      });
+    }
+
+    function updateInspectorUI() {
+      const badge = document.getElementById('selected-status-badge');
+      const centerBox = document.getElementById('lewis-center-atom-box');
+      const compassCenter = document.getElementById('compass-center-label');
+
+      const symMap = {
+        none: 'なし',
+        dot1: '•',
+        dot2: '••',
+        mix2: '●○',
+        open1: '○',
+        open2: '○○',
+        dot4: '••••',
+        dot6: '••••••'
+      };
+
+      if (state.selectedAtomIds.length === 1) {
+        const atom = state.scene.atoms.find(a => a.id === state.selectedAtomIds[0]);
+        if (atom) {
+          badge.textContent = `選択中: ${atom.label}${atom.charge}`;
+          centerBox.innerHTML = formatChemLabelHtml(atom.label);
+          if (compassCenter) compassCenter.innerHTML = formatChemLabelHtml(atom.label);
+
+          ['top', 'right', 'bottom', 'left'].forEach(side => {
+            const val = (atom.electrons && atom.electrons[side]) || 'none';
+            document.getElementById(`lewis-label-${side}`).textContent = symMap[val] || 'なし';
+          });
+          return;
+        }
+      } else if (state.selectedAtomIds.length > 1) {
+        badge.textContent = `複数選択中 (${state.selectedAtomIds.length}個)`;
+        centerBox.textContent = `${state.selectedAtomIds.length}個`;
+        return;
+      } else if (state.selectedBondId) {
+        const b = state.scene.bonds.find(x => x.id === state.selectedBondId);
+        badge.textContent = b ? `選択中: 結合 (${b.type})` : '選択中: 結合';
+        return;
+      }
+
+      badge.textContent = '選択中: なし';
+      centerBox.textContent = '-';
+      ['top', 'right', 'bottom', 'left'].forEach(side => {
+        document.getElementById(`lewis-label-${side}`).textContent = '-';
+      });
+    }
+
+    function getTargetAtomsForEdit() {
+      if (state.selectedAtomIds.length > 0) {
+        return state.scene.atoms.filter(a => state.selectedAtomIds.includes(a.id));
+      }
+      if (state.scene.atoms.length === 1) {
+        state.selectedAtomIds = [state.scene.atoms[0].id];
+        return [state.scene.atoms[0]];
+      }
+      showToast('まずキャンバス上の原子をタップして選択してください', 'info');
+      return [];
+    }
+
+    function applyElectronToSide(side) {
+      const targets = getTargetAtomsForEdit();
+      if (targets.length === 0) return;
+
+      pushUndoState();
+      targets.forEach(atom => {
+        if (!atom.electrons) atom.electrons = { top: 'none', right: 'none', bottom: 'none', left: 'none' };
+        if (atom.electrons[side] === state.activeElectronBrush && state.activeElectronBrush !== 'none') {
+          atom.electrons[side] = 'none';
+        } else {
+          atom.electrons[side] = state.activeElectronBrush;
+        }
+      });
+      renderScene();
+    }
+
+    function applyValencePreset(presetType) {
+      const targets = getTargetAtomsForEdit();
+      if (targets.length === 0) return;
+
+      pushUndoState();
+      targets.forEach(atom => {
+        if (presetType === 'octet') {
+          atom.electrons = { top: 'dot2', right: 'dot2', bottom: 'dot2', left: 'dot2' };
+        } else if (presetType === 'shared_octet') {
+          atom.electrons = { top: 'mix2', right: 'mix2', bottom: 'mix2', left: 'mix2' };
+        } else if (presetType === 'carbon') {
+          atom.electrons = { top: 'dot1', right: 'dot1', bottom: 'dot1', left: 'dot1' };
+        } else if (presetType === 'nitrogen') {
+          atom.electrons = { top: 'dot2', right: 'dot1', bottom: 'dot1', left: 'dot1' };
+        } else if (presetType === 'oxygen') {
+          atom.electrons = { top: 'dot2', right: 'dot1', bottom: 'dot2', left: 'dot1' };
+        } else if (presetType === 'halogen') {
+          atom.electrons = { top: 'dot2', right: 'dot2', bottom: 'dot2', left: 'dot1' };
+        } else if (presetType === 'clear') {
+          atom.electrons = { top: 'none', right: 'none', bottom: 'none', left: 'none' };
+        }
+      });
+      renderScene();
+    }
+
+    function setAtomCharge(chargeStr) {
+      const targets = getTargetAtomsForEdit();
+      if (targets.length === 0) return;
+      pushUndoState();
+      targets.forEach(a => { a.charge = chargeStr; });
+      renderScene();
+    }
+
+    function setSelectedHighlightColor(colorVal) {
+      pushUndoState();
+      if (state.selectedBondId) {
+        const b = state.scene.bonds.find(x => x.id === state.selectedBondId);
+        if (b) b.color = colorVal;
+      }
+      if (state.selectedAtomIds.length > 0) {
+        state.scene.atoms.forEach(a => {
+          if (state.selectedAtomIds.includes(a.id)) {
+            a.color = colorVal;
+          }
+        });
+      }
+      renderScene();
+    }
+
+    function toggleSelectedCarbonVisibility(hide) {
+      const targets = state.selectedAtomIds.length > 0
+        ? state.scene.atoms.filter(a => state.selectedAtomIds.includes(a.id))
+        : state.scene.atoms.filter(a => a.label === 'C');
+
+      if (targets.length === 0) return;
+      pushUndoState();
+      targets.forEach(a => { a.hideLabel = hide; });
+      renderScene();
+    }
+
+    // Ring & Structure Stamps
+    function stampStructure(stampType) {
+      pushUndoState();
+      const offset = state.scene.atoms.length > 0 ? 150 : 0;
+      const cx = Math.round(400 + (state.scene.atoms.length > 0 ? (Math.random() - 0.5) * offset : 0));
+      const cy = 250;
+      const radius = 68;
+
+      if (stampType === 'pyranose_ring') {
+        // Haworth 6-membered sugar ring (O at upper right, C1-C5)
+        const ts = Date.now();
+        const ringAtoms = [
+          makeAtom(`pyr_o_${ts}`,  cx + 46, cy - 56, 'O', { color: '#dc2626' }),
+          makeAtom(`pyr_c1_${ts}`, cx + 96, cy,      'C'),
+          makeAtom(`pyr_c2_${ts}`, cx + 46, cy + 56, 'C'),
+          makeAtom(`pyr_c3_${ts}`, cx - 46, cy + 56, 'C'),
+          makeAtom(`pyr_c4_${ts}`, cx - 96, cy,      'C'),
+          makeAtom(`pyr_c5_${ts}`, cx - 46, cy - 56, 'C')
+        ];
+        ringAtoms.forEach(a => state.scene.atoms.push(a));
+        for (let i = 0; i < 6; i++) {
+          state.scene.bonds.push(
+            makeBond(`pyr_b_${ts}_${i}`, ringAtoms[i].id, ringAtoms[(i + 1) % 6].id, 'single')
+          );
+        }
+        state.selectedAtomIds = [ringAtoms[1].id];
+        renderScene();
+        showToast('ピラノース環(糖六員環)を追加しました。各炭素の「＋」からHやOHを伸ばせます！', 'success');
+        return;
+      }
+
+      const nSides = stampType === 'cyclopentane' ? 5 : 6;
+      const newAtomIds = [];
+      const ts = Date.now();
+
+      for (let i = 0; i < nSides; i++) {
+        const deg = -90 + (i * 360) / nSides;
+        const rad = (deg * Math.PI) / 180;
+        const atom = makeAtom(
+          `ring_c_${ts}_${i}`,
+          cx + radius * Math.cos(rad),
+          cy + radius * Math.sin(rad),
+          'C',
+          { hideLabel: stampType === 'benzene_kekule' || stampType === 'benzene_circle' }
+        );
+        state.scene.atoms.push(atom);
+        newAtomIds.push(atom.id);
+
+        if (stampType === 'benzene_full') {
+          const rH = 122;
+          const hAtom = makeAtom(
+            `ring_h_${ts}_${i}`,
+            cx + rH * Math.cos(rad),
+            cy + rH * Math.sin(rad),
+            'H'
+          );
+          state.scene.atoms.push(hAtom);
+          state.scene.bonds.push(makeBond(`ring_bh_${ts}_${i}`, atom.id, hAtom.id, 'single'));
+        }
+      }
+
+      for (let i = 0; i < nSides; i++) {
+        const next = (i + 1) % nSides;
+        const isDouble = (stampType === 'benzene_kekule' || stampType === 'benzene_full') && i % 2 === 0;
+        state.scene.bonds.push(
+          makeBond(`ring_bc_${ts}_${i}`, newAtomIds[i], newAtomIds[next], isDouble ? 'double' : 'single')
+        );
+      }
+
+      if (stampType === 'benzene_circle') {
+        state.scene.decorations.push({
+          id: 'dec_' + ts,
+          type: 'aromatic_circle',
+          atomIds: newAtomIds,
+          radius: 34,
+          color: 'default'
+        });
+      }
+
+      state.selectedAtomIds = [newAtomIds[0]];
+      renderScene();
+      showToast('環構造をスタンプ配置しました', 'success');
+    }
+
+    // Ion Brackets `[ ... ]^charge`
+    function addOrUpdateIonBracket(chargeStr) {
+      if (state.scene.atoms.length === 0) {
+        showToast('先にキャンバスに原子を配置してください', 'error');
+        return;
+      }
+      pushUndoState();
+      const targetIds = state.selectedAtomIds.length > 1
+        ? [...state.selectedAtomIds]
+        : state.scene.atoms.map(a => a.id);
+
+      state.scene.brackets = [{
+        id: 'br_' + Date.now(),
+        atomIds: targetIds,
+        charge: chargeStr,
+        padding: 26
+      }];
+      renderScene();
+      showToast(`イオン大括弧 [ 　 ]^${chargeStr} を設定しました`, 'success');
+    }
+
+    function clearIonBrackets() {
+      pushUndoState();
+      state.scene.brackets = [];
+      renderScene();
+      showToast('イオン大括弧を解除しました', 'info');
+    }
+
+    // --- 11. Tool Modes, Undo/Redo, Selection & Camera ---
+    function setToolMode(mode) {
+      state.toolMode = mode;
+      ['select', 'atom', 'bond', 'eraser'].forEach(m => {
+        const btn = document.getElementById(`mode-btn-${m}`);
+        if (!btn) return;
+        if (m === mode) {
+          btn.className = 'mode-btn px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm';
+        } else {
+          btn.className = 'mode-btn px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition text-slate-600 dark:text-slate-300 hover:text-slate-900';
+        }
+      });
+
+      const hints = {
+        select: '原子をタップ → 周囲の「＋」をタップで結合追加 / 下の元素ボタンで即置換 / 結合線をタップで単・二重・三重切替',
+        atom: 'キャンバスの空白をタップで新規原子を配置、既存の原子をタップで元素記号を変更します',
+        bond: '原子から原子へドラッグ（または2つの原子を順番にタップ）して結合を作成・変更します',
+        eraser: '削除したい原子や結合をタップすると消去できます'
+      };
+      document.getElementById('canvas-hint-text').textContent = hints[mode] || '';
+      renderScene();
+    }
+
+    function toggleMultiSelectMode() {
+      state.multiSelect = !state.multiSelect;
+      const btn = document.getElementById('multi-select-btn');
+      if (state.multiSelect) {
+        btn.className = 'px-2 py-1 rounded-lg bg-emerald-600 text-white text-[11px] font-bold transition';
+        btn.textContent = '複数選択: ON';
+      } else {
+        btn.className = 'px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-bold transition';
+        btn.textContent = '複数選択';
+      }
+    }
+
+    function selectAllAtoms() {
+      state.selectedAtomIds = state.scene.atoms.map(a => a.id);
+      state.selectedBondId = null;
+      renderScene();
+    }
+
+    function removeAtomById(atomId) {
+      state.scene.atoms = state.scene.atoms.filter(a => a.id !== atomId);
+      state.scene.bonds = state.scene.bonds.filter(b => b.from !== atomId && b.to !== atomId);
+      state.scene.brackets.forEach(br => {
+        br.atomIds = br.atomIds.filter(id => id !== atomId);
+      });
+      state.scene.brackets = state.scene.brackets.filter(br => br.atomIds.length > 0);
+      state.selectedAtomIds = state.selectedAtomIds.filter(id => id !== atomId);
+    }
+
+    function deleteSelected() {
+      if (state.selectedAtomIds.length === 0 && !state.selectedBondId) {
+        showToast('削除する項目が選択されていません', 'info');
+        return;
+      }
+      pushUndoState();
+      if (state.selectedBondId) {
+        state.scene.bonds = state.scene.bonds.filter(b => b.id !== state.selectedBondId);
+        state.selectedBondId = null;
+      }
+      if (state.selectedAtomIds.length > 0) {
+        const toRemove = [...state.selectedAtomIds];
+        toRemove.forEach(id => removeAtomById(id));
+      }
+      renderScene();
+    }
+
+    function clearCanvas() {
+      pushUndoState();
+      state.scene = { atoms: [], bonds: [], brackets: [], decorations: [] };
+      state.selectedAtomIds = [];
+      state.selectedBondId = null;
+      renderScene();
+      showToast('キャンバスをクリアしました', 'info');
+    }
+
+    function pushUndoState() {
+      const snapshot = JSON.stringify(state.scene);
+      if (state.undoStack.length === 0 || state.undoStack[state.undoStack.length - 1] !== snapshot) {
+        state.undoStack.push(snapshot);
+        if (state.undoStack.length > 40) state.undoStack.shift();
+        state.redoStack = [];
+      }
+    }
+
+    function undoAction() {
+      if (state.undoStack.length === 0) {
+        showToast('これ以上戻せません', 'info');
+        return;
+      }
+      state.redoStack.push(JSON.stringify(state.scene));
+      const prev = state.undoStack.pop();
+      state.scene = JSON.parse(prev);
+      state.selectedAtomIds = [];
+      state.selectedBondId = null;
+      renderScene();
+    }
+
+    function redoAction() {
+      if (state.redoStack.length === 0) {
+        showToast('やり直す操作がありません', 'info');
+        return;
+      }
+      state.undoStack.push(JSON.stringify(state.scene));
+      const next = state.redoStack.pop();
+      state.scene = JSON.parse(next);
+      renderScene();
+    }
+
+    function zoomCanvas(factor) {
+      const cx = state.viewBox.x + state.viewBox.w / 2;
+      const cy = state.viewBox.y + state.viewBox.h / 2;
+      const nw = Math.max(250, Math.min(2000, state.viewBox.w / factor));
+      const nh = Math.max(160, Math.min(1300, state.viewBox.h / factor));
+      state.viewBox.w = nw;
+      state.viewBox.h = nh;
+      state.viewBox.x = cx - nw / 2;
+      state.viewBox.y = cy - nh / 2;
+      renderScene();
+    }
+
+    function resetCamera() {
+      state.viewBox = { x: 0, y: 0, w: 800, h: 500 };
+      renderScene();
+    }
+
+    // --- 12. Clean Standalone SVG -> High-Resolution PNG Export Pipeline ---
+    let exportTimer = null;
+    function scheduleExportPreviewUpdate() {
+      clearTimeout(exportTimer);
+      exportTimer = setTimeout(() => {
+        generateHighResPng();
+      }, 75);
+    }
+
+    async function generateHighResPng() {
+      const liveImg = document.getElementById('live-png-preview');
+      const modalImg = document.getElementById('modal-png-preview');
+      const dimBadge = document.getElementById('export-dim-badge');
+
+      if (state.scene.atoms.length === 0) {
+        liveImg.src = '';
+        dimBadge.textContent = '0 × 0 px';
+        return;
+      }
+
+      const bbox = computeAtomsTightBox(state.scene.atoms);
+      let minX = bbox.minX;
+      let minY = bbox.minY;
+      let maxX = bbox.maxX;
+      let maxY = bbox.maxY;
+
+      if (state.scene.brackets.length > 0) {
+        minX -= 36;
+        maxX += 54;
+        minY -= 32;
+        maxY += 32;
+      }
+
+      const pad = state.exportPadding;
+      const viewX = Math.floor(minX - pad);
+      const viewY = Math.floor(minY - pad);
+      const viewW = Math.max(60, Math.ceil(maxX - minX + pad * 2));
+      const viewH = Math.max(60, Math.ceil(maxY - minY + pad * 2));
+
+      const targetPixelW = viewW * state.exportScale;
+      const targetPixelH = viewH * state.exportScale;
+
+      let defaultInk = state.baseInkColor;
+      if (state.exportBg === 'black') defaultInk = '#ffffff';
+      if (state.exportBg === 'white') defaultInk = '#0f172a';
+
+      const exportSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      exportSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      exportSvg.setAttribute('viewBox', `${viewX} ${viewY} ${viewW} ${viewH}`);
+      exportSvg.setAttribute('width', `${targetPixelW}px`);
+      exportSvg.setAttribute('height', `${targetPixelH}px`);
+
+      // Decorations
+      state.scene.decorations.forEach(dec => {
+        if (dec.type === 'aromatic_circle' && dec.atomIds && dec.atomIds.length >= 3) {
+          const ringAtoms = dec.atomIds.map(id => state.scene.atoms.find(a => a.id === id)).filter(Boolean);
+          if (ringAtoms.length >= 3) {
+            const cx = ringAtoms.reduce((s, a) => s + a.x, 0) / ringAtoms.length;
+            const cy = ringAtoms.reduce((s, a) => s + a.y, 0) / ringAtoms.length;
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', cx);
+            circle.setAttribute('cy', cy);
+            circle.setAttribute('r', dec.radius || 30);
+            circle.setAttribute('fill', 'none');
+            circle.setAttribute('stroke', dec.color && dec.color !== 'default' ? dec.color : defaultInk);
+            circle.setAttribute('stroke-width', '2.6');
+            exportSvg.appendChild(circle);
+          }
+        }
+      });
+
+      // Bonds
+      state.scene.bonds.forEach(bond => {
+        const a1 = state.scene.atoms.find(a => a.id === bond.from);
+        const a2 = state.scene.atoms.find(a => a.id === bond.to);
+        if (!a1 || !a2) return;
+        const c = bond.color && bond.color !== 'default' ? bond.color : defaultInk;
+        exportSvg.appendChild(createBondSvgGroup(a1, a2, bond, c, false, false));
+      });
+
+      // Ion Brackets
+      state.scene.brackets.forEach(br => {
+        const g = createBracketSvgGroup(br, state.scene.atoms, defaultInk);
+        if (g) exportSvg.appendChild(g);
+      });
+
+      // Atoms & Lewis Dots
+      state.scene.atoms.forEach(atom => {
+        const c = atom.color && atom.color !== 'default' ? atom.color : defaultInk;
+        exportSvg.appendChild(createAtomSvgGroup(atom, c, false, false));
+      });
+
+      const svgString = new XMLSerializer().serializeToString(exportSvg);
+      const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = targetPixelW;
+      canvas.height = targetPixelH;
+      const ctx = canvas.getContext('2d');
+
+      if (state.exportBg === 'white') {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, targetPixelW, targetPixelH);
+      } else if (state.exportBg === 'black') {
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, targetPixelW, targetPixelH);
+      } else {
+        ctx.clearRect(0, 0, targetPixelW, targetPixelH);
+      }
+
+      await new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, targetPixelW, targetPixelH);
+          resolve();
+        };
+        img.onerror = () => resolve();
+        img.src = svgDataUrl;
+      });
+
+      const pngUrl = canvas.toDataURL('image/png');
+      state.currentPngDataUrl = pngUrl;
+      liveImg.src = pngUrl;
+      if (modalImg) modalImg.src = pngUrl;
+      dimBadge.textContent = `${targetPixelW} × ${targetPixelH} px (${state.exportScale}x)`;
+    }
+
+    function setExportBg(mode) {
+      state.exportBg = mode;
+      ['transparent', 'white', 'black'].forEach(m => {
+        const btn = document.getElementById(`exp-bg-${m}`);
+        if (m === mode) {
+          btn.className = 'py-1.5 px-2 rounded-xl border-2 border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/40 text-xs font-bold flex items-center justify-center gap-1.5';
+        } else {
+          btn.className = 'py-1.5 px-2 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-xs font-bold flex items-center justify-center gap-1.5';
+        }
+      });
+      generateHighResPng();
+    }
+
+    function toggleBaseInkColor() {
+      state.baseInkColor = state.baseInkColor === '#0f172a' ? '#ffffff' : '#0f172a';
+      document.getElementById('exp-ink-label').textContent =
+        state.baseInkColor === '#0f172a' ? '基本色: 黒' : '基本色: 白';
+      generateHighResPng();
+    }
+
+    function setExportScale(s) {
+      state.exportScale = s;
+      [2, 3, 4].forEach(val => {
+        const btn = document.getElementById(`exp-scale-${val}`);
+        if (val === s) {
+          btn.className = 'flex-1 py-1 rounded-lg border-2 border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-xs font-bold';
+        } else {
+          btn.className = 'flex-1 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold';
+        }
+      });
+      generateHighResPng();
+    }
+
+    function setExportPadding(val) {
+      state.exportPadding = parseInt(val, 10);
+      document.getElementById('exp-padding-label').textContent = `${state.exportPadding}px`;
+      scheduleExportPreviewUpdate();
+    }
+
+    function downloadPng() {
+      if (!state.currentPngDataUrl) {
+        showToast('出力する構造がありません', 'error');
+        return;
+      }
+      const a = document.createElement('a');
+      const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+      a.download = `chem-structure-${ts}.png`;
+      a.href = state.currentPngDataUrl;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('高解像度PNG画像をダウンロードしました！', 'success');
+    }
+
+    async function copyPngToClipboard() {
+      if (!state.currentPngDataUrl) return;
+      try {
+        if (navigator.clipboard && window.ClipboardItem) {
+          const blobPromise = fetch(state.currentPngDataUrl).then(r => r.blob());
+          const item = new ClipboardItem({ 'image/png': blobPromise });
+          await navigator.clipboard.write([item]);
+          showToast('PNG画像をクリップボードにコピーしました！GoodNotes等にペーストできます', 'success');
+        } else {
+          throw new Error('ClipboardItem unsupported');
+        }
+      } catch (e) {
+        openModal('ipad-modal');
+        showToast('長押し保存画面を開きました。画像を長押しして「コピー」を選択してください', 'info');
+      }
+    }
+
+    // --- 13. Preset Dictionary & Saved Library ---
+    function filterPresets(cat) {
+      const map = { all: 'preset-tab-all', '電子式': 'preset-tab-lewis', '構造式': 'preset-tab-struct' };
+      Object.keys(map).forEach(k => {
+        const btn = document.getElementById(map[k]);
+        if (k === cat) {
+          btn.className = 'px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white text-xs sm:text-sm font-bold transition';
+        } else {
+          btn.className = 'px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs sm:text-sm font-bold transition';
+        }
+      });
+      renderPresetCards(cat);
+    }
+
+    function renderPresetCards(filterCat) {
+      const container = document.getElementById('preset-cards-container');
+      container.innerHTML = '';
+
+      const list = filterCat === 'all' ? PRESETS : PRESETS.filter(p => p.category === filterCat);
+
+      list.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 hover:border-emerald-500 transition flex flex-col justify-between gap-2.5 cursor-pointer group';
+        card.onclick = () => {
+          loadPresetById(p.id, true);
+          closeModal('preset-modal');
+        };
+
+        const badgeCls = p.category === '電子式'
+          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+          : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300';
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <span class="px-2 py-0.5 rounded-md text-[11px] font-bold ${badgeCls}">${p.category}</span>
+              <span class="text-xs font-bold text-emerald-600 opacity-0 group-hover:opacity-100 transition">キャンバスに読み込む →</span>
+            </div>
+            <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100 group-hover:text-emerald-600 transition">${p.title}</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">${p.desc}</p>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function loadPresetById(presetId, notify = true) {
+      const found = PRESETS.find(p => p.id === presetId);
+      if (!found) return;
+      pushUndoState();
+      state.scene = JSON.parse(JSON.stringify(found.scene));
+      state.selectedAtomIds = state.scene.atoms.length > 0 ? [state.scene.atoms[0].id] : [];
+      state.selectedBondId = null;
+      centerAndFitMolecule();
+      if (notify) showToast(`「${found.shortName || found.title}」を読み込みました！任意の原子をタップして編集できます`, 'success');
+    }
+
+    function loadSavedLibraryFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_LIBRARY);
+        state.savedLibrary = raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        state.savedLibrary = [];
+      }
+      updateSavedCount();
+      renderSavedLibraryList();
+    }
+
+    function saveLibraryToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_LIBRARY, JSON.stringify(state.savedLibrary));
+      } catch (e) {}
+      updateSavedCount();
+      renderSavedLibraryList();
+    }
+
+    function updateSavedCount() {
+      const badge = document.getElementById('saved-count-badge');
+      if (badge) badge.textContent = state.savedLibrary.length;
+    }
+
+    function saveToLibrary() {
+      if (state.scene.atoms.length === 0) {
+        showToast('キャンバスが空です', 'error');
+        return;
+      }
+      const now = new Date();
+      const dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      state.savedLibrary.unshift({
+        id: 'lib_' + Date.now(),
+        title: `保存した構造 (${dateStr})`,
+        date: dateStr,
+        scene: JSON.parse(JSON.stringify(state.scene))
+      });
+      saveLibraryToStorage();
+      showToast('マイライブラリに保存しました！', 'success');
+    }
+
+    function saveToLibraryWithCustomName() {
+      if (state.scene.atoms.length === 0) {
+        showToast('キャンバスが空です', 'error');
+        return;
+      }
+      const input = document.getElementById('library-title-input');
+      const now = new Date();
+      const dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const title = input.value.trim() || `保存した構造 (${dateStr})`;
+
+      state.savedLibrary.unshift({
+        id: 'lib_' + Date.now(),
+        title,
+        date: dateStr,
+        scene: JSON.parse(JSON.stringify(state.scene))
+      });
+      input.value = '';
+      saveLibraryToStorage();
+      showToast(`「${title}」を保存しました`, 'success');
+    }
+
+    function renderSavedLibraryList() {
+      const container = document.getElementById('saved-list-container');
+      if (!container) return;
+
+      if (state.savedLibrary.length === 0) {
+        container.innerHTML = `<div class="text-center py-8 text-slate-400 text-sm">まだ保存された構造式・電子式はありません。</div>`;
+        return;
+      }
+
+      container.innerHTML = '';
+      state.savedLibrary.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 flex items-center justify-between gap-3';
+        row.innerHTML = `
+          <div>
+            <div class="font-bold text-sm text-slate-800 dark:text-slate-100">${item.title}</div>
+            <div class="text-xs text-slate-400">原子数: ${(item.scene.atoms || []).length} / 保存日時: ${item.date || ''}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="load-btn px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">読み込む</button>
+            <button class="del-btn p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs"><i class="fa-regular fa-trash-can"></i></button>
+          </div>
+        `;
+        row.querySelector('.load-btn').onclick = () => {
+          pushUndoState();
+          state.scene = JSON.parse(JSON.stringify(item.scene));
+          state.selectedAtomIds = [];
+          centerAndFitMolecule();
+          closeModal('saved-modal');
+          showToast(`「${item.title}」を読み込みました`, 'success');
+        };
+        row.querySelector('.del-btn').onclick = () => {
+          state.savedLibrary = state.savedLibrary.filter(x => x.id !== item.id);
+          saveLibraryToStorage();
+        };
+        container.appendChild(row);
+      });
+    }
+
+    // --- 14. Modals, Theme & Toast Utilities ---
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    }
+
+    window.addEventListener('click', (e) => {
+      ['preset-modal', 'ipad-modal', 'saved-modal', 'guide-modal'].forEach(id => {
+        const m = document.getElementById(id);
+        if (e.target === m) closeModal(id);
+      });
+    });
+
+    function toggleTheme() {
+      const htmlEl = document.documentElement;
+      const icon = document.getElementById('theme-icon');
+      if (htmlEl.classList.contains('dark')) {
+        htmlEl.classList.remove('dark');
+        icon.className = 'fa-solid fa-moon text-sm';
+      } else {
+        htmlEl.classList.add('dark');
+        icon.className = 'fa-solid fa-sun text-amber-400 text-sm';
+      }
+      renderScene();
+    }
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const clsMap = {
+        success: 'bg-slate-900 dark:bg-emerald-600 text-white border-emerald-500',
+        error: 'bg-rose-600 text-white border-rose-500',
+        info: 'bg-slate-800 text-white border-slate-700'
+      };
+      toast.className = `pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-lg border text-xs sm:text-sm font-medium transition-all duration-300 ${clsMap[type] || clsMap.info}`;
+      toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 dark:text-white"></i><span>${msg}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(8px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 2600);
+    }
+  </script>
+</body>
+</html>
